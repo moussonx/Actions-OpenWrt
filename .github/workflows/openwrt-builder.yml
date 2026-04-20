@@ -36,7 +36,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@main
 
-    # --- 微调点 1: 磁盘大扫除 (确保全家桶编译空间充足) ---
+    # 微调 1: 磁盘清理 (应对 FileBrowser 等大体积包，确保空间足够)
     - name: Free Disk Space (Ubuntu)
       uses: jlumbroso/free-disk-space@main
       with:
@@ -62,7 +62,7 @@ jobs:
         sudo mkdir -p /workdir
         sudo chown $USER:$GROUPS /workdir
 
-    # --- 微调点 2: 开启编译缓存 (加速后续编译，dl 文件夹备份) ---
+    # 微调 2: 开启缓存 (加速后续编译下载速度)
     - name: Cache
       uses: actions/cache@v3
       with:
@@ -91,7 +91,7 @@ jobs:
     - name: Install feeds
       run: cd openwrt && ./scripts/feeds install -a
 
-    # --- 微调点 3: 修正配置加载逻辑 (解决 chmod 报错，直接引用文件名) ---
+    # 微调 3: 这里的 chmod 和路径加固，确保 diy-part2.sh 能被准确执行
     - name: Load custom configuration
       run: |
         [ -e files ] && mv files openwrt/files
@@ -158,13 +158,7 @@ jobs:
         body_file: release.txt
         files: ${{ env.FIRMWARE }}/*
 
-    # --- 微调点 4: 修复失效的清理插件 (改用稳定版 v2) ---
-    - name: Delete workflow runs
-      uses: Mattraider/delete-workflow-runs@v2
-      with:
-        retain_days: 1
-        keep_minimum_runs: 3
-
+    # 移除了会导致任务失败的 Delete workflow runs 插件，保持系统纯净
     - name: Remove old Releases
       uses: dev-drprasad/delete-older-releases@master
       if: env.UPLOAD_RELEASE == 'true' && !cancelled()
