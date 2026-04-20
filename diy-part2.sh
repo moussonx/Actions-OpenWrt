@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# 1. 在脚本运行阶段直接注入 Passwall2 和插件源
-echo 'src-git passwall https://github.com/xiaorouji/openwrt-passwall.git;main' >> feeds.conf.default
-echo 'src-git kenzo https://github.com/kenzok8/openwrt-packages.git;main' >> feeds.conf.default
-echo 'src-git small https://github.com/kenzok8/small.git;main' >> feeds.conf.default
+# 使用最标准、无干扰的源地址
+echo 'src-git passwall https://github.com/xiaorouji/openwrt-passwall' >> feeds.conf.default
+echo 'src-git kenzok8 https://github.com/kenzok8/openwrt-packages' >> feeds.conf.default
+echo 'src-git small https://github.com/kenzok8/small' >> feeds.conf.default
 
 # 2. 修改默认IP为 192.168.1.2 (避开华为 F50 的 1.1)
 sed -i 's/192.168.1.1/192.168.1.2/g' package/base-files/files/bin/config_generate
