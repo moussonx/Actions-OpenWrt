@@ -17,9 +17,9 @@ git clone --depth=1 https://github.com/linkease/istore.git package/community/ist
 # Lucky 反向代理 (针对 XJFNAS 很有用)
 git clone --depth=1 https://github.com/gdy666/luci-app-lucky.git package/community/luci-app-lucky
 # 最新版 FileBrowser
-git clone --depth=1 https://github.com/xiaozhuai/luci-app-filebrowser.git package/community/luci-app-filebrowser
-# PassWall 2 核心源码 (手动物理注入，确保不再消失)
-git clone --depth=1 -b main https://github.com/xiaorouji/openwrt-passwall.git package/community/passwall
+git clone --depth=1 https://github.com/xiaozhuai/luci-app-filebrowser.git package/community/luci-app-file
+# 强行拉取真正的 PassWall 2 源码
+git clone --depth=1 https://github.com/Openwrt-Passwall/openwrt-passwall2.git package/community/luci-app-passwall2
 
 # 4. 针对 XJFNAS VMM 环境的极致优化 (写入 .config)
 cat >> .config <<EOF
