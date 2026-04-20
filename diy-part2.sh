@@ -1,4 +1,5 @@
 #!/bin/bash
+
 # 1. 基础配置：修改默认 IP 为 192.168.1.2
 sed -i 's/192.168.1.1/192.168.1.2/g' package/base-files/files/bin/config_generate
 
@@ -9,13 +10,15 @@ unzip -q pw2.zip
 mv openwrt-passwall2-26.4.20-1/* package/custom/passwall/
 rm -rf pw2.zip openwrt-passwall2-26.4.20-1
 
-# 3. 解决 haproxy 报错：物理删除冲突源码
+# 3. 解决报错：物理删除可能导致编译冲突的源码
 rm -rf feeds/packages/net/haproxy
+rm -rf feeds/luci/applications/luci-app-filebrowser
 
-# 4. 拉取天花板组件源码 (iStore 商店界面 + UA2F 抢号伪装)
-# 统一存放在 custom 目录下，保持代码整洁
+# 4. 拉取天花板组件源码 (iStore + UA2F + FileBrowser)
+# 统一存放在 custom 目录下，确保中文包和代码都是最新版
 git clone https://github.com/linkease/istore.git package/custom/istore
 git clone https://github.com/Zxilly/UA2F.git package/custom/ua2f
+git clone https://github.com/xiaozhuai/luci-app-filebrowser.git package/custom/luci-app-filebrowser
 
 # 5. 刷新并安装插件源
 ./scripts/feeds update -a
