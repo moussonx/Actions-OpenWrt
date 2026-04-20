@@ -81,16 +81,17 @@ jobs:
         echo "status=success" >> $GITHUB_OUTPUT
         echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
 
-    - name: Organize files
+- name: Organize files
       id: organize
       if: env.UPLOAD_FIRMWARE == 'true' && !cancelled()
       run: |
-        # 进入编译产物目录
+        # 强制进入编译生成的固件目录
         cd openwrt/bin/targets/*/*
-        # 删掉没用的包，只留固件镜像
+        # 清理掉没用的 ipk 文件夹，只留镜像
         rm -rf packages
-        # 打印一下文件列表，确保我们在日志里能看到几百MB的文件
+        # 【关键】打印文件列表，咱们要在日志里亲眼看到几百MB的 .img.gz
         ls -lh
+        # 把当前绝对路径交给环境变量
         echo "FIRMWARE=$PWD" >> $GITHUB_ENV
         echo "status=success" >> $GITHUB_OUTPUT
 
@@ -98,8 +99,8 @@ jobs:
       uses: actions/upload-artifact@v4
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
-        # 给产物换个名字，防止和旧的混淆
-        name: OpenWrt_Super_v24_Success
+        # 换个新名字，方便区分
+        name: OpenWrt_SuperFirmware_Final
         path: ${{ env.FIRMWARE }}
 
     - name: Upload firmware to release
@@ -108,5 +109,6 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ env.FILE_DATE }}  # 关键点：用时间戳当标签名，这样就不会报错了
+        # 【关键修复】手动指定 Tag 名，避免 Release 报错
+        tag_name: ${{ env.FILE_DATE }}
         files: ${{ env.FIRMWARE }}/*
