@@ -85,8 +85,12 @@ jobs:
       id: organize
       if: env.UPLOAD_FIRMWARE == 'true' && !cancelled()
       run: |
+        # 进入编译产物目录
         cd openwrt/bin/targets/*/*
+        # 删掉没用的包，只留固件镜像
         rm -rf packages
+        # 打印一下文件列表，确保我们在日志里能看到几百MB的文件
+        ls -lh
         echo "FIRMWARE=$PWD" >> $GITHUB_ENV
         echo "status=success" >> $GITHUB_OUTPUT
 
@@ -94,7 +98,8 @@ jobs:
       uses: actions/upload-artifact@v4
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
-        name: OpenWrt_SuperFirmware${{ env.FILE_DATE }}
+        # 给产物换个名字，防止和旧的混淆
+        name: OpenWrt_Super_v24_Success
         path: ${{ env.FIRMWARE }}
 
     - name: Upload firmware to release
