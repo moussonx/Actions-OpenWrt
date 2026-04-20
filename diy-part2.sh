@@ -9,20 +9,20 @@ unzip -q pw2.zip
 mv openwrt-passwall2-26.4.20-1/* package/custom/passwall/
 rm -rf pw2.zip openwrt-passwall2-26.4.20-1
 
-# 3. 解决 haproxy 编译报错：物理删除冲突源码，让系统自动重拉稳定版
+# 3. 彻底删除会导致报错的 haproxy 源码（物理避坑）
 rm -rf feeds/packages/net/haproxy
 
 # 4. 刷新并安装插件源
 ./scripts/feeds update -a
 ./scripts/feeds install -a
 
-# 5. VMM 及新功能优化 (针对你的 XJFNAS)
-echo "CONFIG_VIRTIO=y" >> .config
-echo "CONFIG_VIRTIO_NET=y" >> .config
-echo "CONFIG_VIRTIO_BLK=y" >> .config
-echo "CONFIG_PACKAGE_fstrim=y" >> .config
-echo "CONFIG_DEFAULT_TCP_CONG=\"bbr\"" >> .config
-
-# 新增：勾选网络唤醒和 Alist 挂载
-echo "CONFIG_PACKAGE_luci-app-wol=y" >> .config
-echo "CONFIG_PACKAGE_luci-app-alist=y" >> .config
+# 5. 针对 XJFNAS VMM 环境的定向优化
+cat >> .config <<EOF
+CONFIG_VIRTIO=y
+CONFIG_VIRTIO_NET=y
+CONFIG_VIRTIO_BLK=y
+CONFIG_PACKAGE_fstrim=y
+CONFIG_DEFAULT_TCP_CONG="bbr"
+CONFIG_PACKAGE_luci-app-wol=y
+CONFIG_PACKAGE_luci-app-alist=y
+EOF
