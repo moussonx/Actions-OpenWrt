@@ -80,28 +80,26 @@ jobs:
         make -j$(nproc) || make -j1 || make -j1 V=s
         echo "status=success" >> $GITHUB_OUTPUT
         echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
-
-- name: Organize files
+    - name: Organize files
       id: organize
       if: env.UPLOAD_FIRMWARE == 'true' && !cancelled()
       run: |
-        # 强制进入编译生成的固件目录
         cd openwrt/bin/targets/*/*
-        # 清理掉没用的 ipk 文件夹，只留镜像
         rm -rf packages
-        # 【关键】打印文件列表，咱们要在日志里亲眼看到几百MB的 .img.gz
+        # 【保险1】打印当前路径和文件大小，如果这里显示 0，说明编译没产出
+        echo "当前目录文件列表："
         ls -lh
-        # 把当前绝对路径交给环境变量
-        echo "FIRMWARE=$PWD" >> $GITHUB_ENV
+        # 【保险2】强制写入环境变量
+        echo "FIRMWARE=$(pwd)" >> $GITHUB_ENV
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: Upload firmware directory
       uses: actions/upload-artifact@v4
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
-        # 换个新名字，方便区分
-        name: OpenWrt_SuperFirmware_Final
-        path: ${{ env.FIRMWARE }}
+        name: OpenWrt_SuperFirmware_v25
+        # 【保险3】直接指向物理路径，不再完全依赖变量，防止变量丢失
+        path: openwrt/bin/targets/*/*/*
 
     - name: Upload firmware to release
       uses: softprops/action-gh-release@v1
@@ -109,6 +107,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        # 【关键修复】手动指定 Tag 名，避免 Release 报错
         tag_name: ${{ env.FILE_DATE }}
-        files: ${{ env.FIRMWARE }}/*
+        # 同样使用物理通配符，确保万无一失
+        files: openwrt/bin/targets/*/*/*
+    
