@@ -3,11 +3,12 @@
 # 1. 基础配置：修改默认 IP 为 192.168.1.2
 sed -i 's/192.168.1.1/192.168.1.2/g' package/base-files/files/bin/config_generate
 
-# 2. 物理注入 Passwall2 源码 (保持 26.4.20-1)
-mkdir -p package/custom/passwall
+# 2. 物理注入 Passwall2 源码 (精准提取插件目录)
+mkdir -p package/community
 curl -L https://github.com/Openwrt-Passwall/openwrt-passwall2/archive/refs/tags/26.4.20-1.zip -o pw2.zip
 unzip -q pw2.zip
-mv openwrt-passwall2-26.4.20-1/* package/custom/passwall/
+# 重点：只移动核心插件文件夹，这样编译器绝对不会认错
+mv openwrt-passwall2-26.4.20-1/luci-app-passwall2 package/community/
 rm -rf pw2.zip openwrt-passwall2-26.4.20-1
 
 # 3. 解决报错：物理删除可能导致编译冲突的源码
