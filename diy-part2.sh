@@ -3,15 +3,18 @@
 # 1. 基础配置
 sed -i 's/192.168.1.1/192.168.1.2/g' package/base-files/files/bin/config_generate
 
-# 2. 【新增核心】强制更新并安装 feeds (确保 feeds.conf.default 生效)
-# 这一步是让编译器强制认领 Passwall2 的关键
+# 2. 【核心暴力修正】把所有 feeds 里的 xiaorouji 链接全部强制换成 itdog 镜像
+# 这样管它代码从哪出来的，只要遇到原厂地址，一律强制走镜像
+sed -i 's|https://github.com/xiaorouji/openwrt-passwall|https://github.com/itdog-cn/openwrt-passwall.git|g' feeds.conf.default
+
+# 3. 再次强制刷新并安装 (双重保险)
 ./scripts/feeds update -a
 ./scripts/feeds install -a
 
-# 3. 清理冲突
+# 4. 清理残留冲突
 rm -rf feeds/packages/lang/python/micropython
 
-# 4. VMM 优化
+# 5. VMM 优化与 BBR
 echo "CONFIG_VIRTIO=y" >> .config
 echo "CONFIG_VIRTIO_NET=y" >> .config
 echo "CONFIG_VIRTIO_BLK=y" >> .config
