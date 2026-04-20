@@ -21,3 +21,5 @@ echo "CONFIG_VIRTIO_NET=y" >> .config
 echo "CONFIG_VIRTIO_BLK=y" >> .config
 echo "CONFIG_PACKAGE_fstrim=y" >> .config
 echo "CONFIG_DEFAULT_TCP_CONG=\"bbr\"" >> .config
+
+rm -rf feeds/packages/net/haproxy
