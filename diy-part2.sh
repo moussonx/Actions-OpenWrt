@@ -14,7 +14,7 @@ mkdir -p package/community
 git clone --depth=1 https://github.com/linkease/istore.git package/community/istore
 git clone --depth=1 https://github.com/gdy666/luci-app-lucky.git package/community/luci-app-lucky
 git clone --depth=1 https://github.com/xiaozhuai/luci-app-filebrowser.git package/community/luci-app-filebrowser
-git clone --depth=1 -b main https://github.com/xiaorouji/openwrt-passwall.git package/community/passwall
+git clone --depth=1 https://github.com/Openwrt-Passwall/openwrt-passwall2.git package/community/luci-app-passwall2
 
 # 4. 针对 XJFNAS VMM 环境的极致优化 (写入 .config)
 cat >> .config <<EOF
