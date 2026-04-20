@@ -1,20 +1,25 @@
 #!/bin/bash
 
-# 1. 基础配置
+# 1. 基础 IP 修改
 sed -i 's/192.168.1.1/192.168.1.2/g' package/base-files/files/bin/config_generate
 
-# 2. 【核心暴力修正】把所有 feeds 里的 xiaorouji 链接全部强制换成 itdog 镜像
-# 这样管它代码从哪出来的，只要遇到原厂地址，一律强制走镜像
-sed -i 's|https://github.com/xiaorouji/openwrt-passwall|https://github.com/itdog-cn/openwrt-passwall.git|g' feeds.conf.default
+# 2. 物理拉取 Passwall2 (避开 Git 协议)
+mkdir -p package/custom
+# 直接下载 zip 压缩包，GitHub 绝不会对公开包的 zip 下载设权限墙
+curl -L https://github.com/itdog-cn/openwrt-passwall/archive/refs/heads/main.zip -o passwall.zip
+unzip -q passwall.zip
+mv openwrt-passwall-main package/custom/passwall
+rm -f passwall.zip
 
-# 3. 再次强制刷新并安装 (双重保险)
+# 3. 拉取必要的内核依赖 (同样改用镜像，并确保路径正确)
+git clone --depth 1 https://github.com/kenzok8/small.git package/custom/small
+
+# 4. 强制清理冲突并刷新
+rm -rf feeds/packages/lang/python/micropython
 ./scripts/feeds update -a
 ./scripts/feeds install -a
 
-# 4. 清理残留冲突
-rm -rf feeds/packages/lang/python/micropython
-
-# 5. VMM 优化与 BBR
+# 5. NAS VMM 优化与 BBR
 echo "CONFIG_VIRTIO=y" >> .config
 echo "CONFIG_VIRTIO_NET=y" >> .config
 echo "CONFIG_VIRTIO_BLK=y" >> .config
