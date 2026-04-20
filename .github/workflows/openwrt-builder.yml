@@ -103,5 +103,5 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ env.FILE_DATE }}
+        tag_name: ${{ env.FILE_DATE }}  # 关键点：用时间戳当标签名，这样就不会报错了
         files: ${{ env.FIRMWARE }}/*
