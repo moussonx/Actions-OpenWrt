@@ -41,8 +41,6 @@ git clone --depth=1 https://github.com/linkease/istore.git package/community/ist
 git clone --depth=1 https://github.com/gdy666/luci-app-lucky.git package/community/luci-app-lucky
 git clone --depth=1 https://github.com/xiaozhuai/luci-app-filebrowser.git package/community/luci-app-filebrowser
 git clone --depth=1 https://github.com/asvow/luci-app-tailscale.git package/community/luci-app-tailscale
-
-# 放弃 curl，回归标准 git 抓取，这是目前避开 gzip 报错的唯一办法
 git clone --depth=1 https://github.com/sbwml/luci-app-cloudflared.git package/community/luci-app-cloudflared
 
 # 5. 针对 XJFNAS VMM 环境的极致优化及排雷
