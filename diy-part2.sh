@@ -66,6 +66,25 @@ else
     echo "警告：抹除失败，请检查路径！"
 fi
 
+# === 极致兼容性补丁 (针对大满贯插件优化) ===
+
+# 【Argon 主题极致定制】
+# 强制预设 Argon 为默认主题（配合你的 argon-config）
+sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
+
+# 【Statistics 统计分析修复】
+# 解决统计图表可能不显示的问题，强制开启收集器
+sed -i 's/pcollectd/collectd/g' feeds/luci/applications/luci-app-statistics/Makefile 2>/dev/null
+
+# 【ZeroTier 权限固化】
+# 确保异地组网脚本有执行权限，防止开机不自启
+chmod +x package/feeds/luci/luci-app-zerotier/root/etc/init.d/zerotier 2>/dev/null
+
+# 【NAS 极致优化：提高文件系统响应】
+# 优化 FSTRIM 周期，延长你 XJFNAS 虚拟磁盘寿命
+sed -i '/fstrim/d' package/base-files/files/etc/crontabs/root 2>/dev/null
+echo "0 4 * * 1 /usr/sbin/fstrim -av" >> package/base-files/files/etc/crontabs/root
+
 # 7. 确保固件能被搬运工看到
 # ================== 📦 终极固件装箱逻辑 ==================
 # 无论是否压缩成功，把所有生成的 img 和 gz 全部捞出来改名，丢到根目录
