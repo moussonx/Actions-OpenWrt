@@ -84,12 +84,10 @@ jobs:
       id: organize
       if: env.UPLOAD_FIRMWARE == 'true' && !cancelled()
       run: |
-        cd openwrt/bin/targets/*/*
+        # 使用 find 命令精准定位到固件所在目录，避免通配符歧义
+        FIRMWARE_PATH=$(find openwrt/bin/targets/ -type d -name "x86" -o -name "64" | head -n 1)
+        cd "$FIRMWARE_PATH"
         rm -rf packages
-        # 【保险1】打印当前路径和文件大小，如果这里显示 0，说明编译没产出
-        echo "当前目录文件列表："
-        ls -lh
-        # 【保险2】强制写入环境变量
         echo "FIRMWARE=$(pwd)" >> $GITHUB_ENV
         echo "status=success" >> $GITHUB_OUTPUT
 
@@ -106,7 +104,6 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        # 核心改进：即使手动点火没填 Tag，也会自动生成：日期-任务号
         tag_name: ${{ github.event.inputs.release_tag || env.FILE_DATE }}-${{ github.run_number }}
         body: |
           编译时间：${{ env.FILE_DATE }}
