@@ -18,9 +18,9 @@ rm -rf feeds/luci/applications/luci-app-passwall* \
 find feeds/luci/ -name "CMakeLists.txt" -exec sed -i 's/cmake_minimum_required(VERSION 3.31)/cmake_minimum_required(VERSION 3.25)/g' {} \;
 
 # 修复2：升级 Golang 到 24.x (彻底解决 #33 任务中 geoview 要求的 Go 1.24 报错)
-# 我们直接替换整个 golang 目录，确保编译环境处于天花板级别
+# 暴力升级 Golang 到 25.x (解决 Xray-core v25 依赖问题)
 rm -rf feeds/packages/lang/golang
-git clone https://github.com/sbwml/packages_lang_golang -b 24.x feeds/packages/lang/golang
+git clone https://github.com/sbwml/packages_lang_golang -b 25.x feeds/packages/lang/golang
 
 # 3. 物理注入超级版源码 (PassWall 2)
 mkdir -p package/community
