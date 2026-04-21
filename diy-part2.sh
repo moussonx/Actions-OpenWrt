@@ -90,12 +90,12 @@ sed -i 's/pcollectd/collectd/g' feeds/luci/applications/luci-app-statistics/Make
 find package/community feeds/luci -type f -path "*/etc/init.d/*" -exec chmod +x {} \;
 find feeds/packages/net/transmission -type f -name "*.init" -exec chmod +x {} \; 2>/dev/null
 
-# 【NAS 极致优化：提高文件系统响应】优化 FSTRIM 周期，延长虚拟磁盘寿命先创建目录，再用追加方式写入定时任务，防止找不到文件
+# 7. NAS 极致优化：先创建目录，再写入定时任务
 mkdir -p package/base-files/files/etc/crontabs
 echo "0 4 * * * sleep 5 && touch /etc/banner && reboot" >> package/base-files/files/etc/crontabs/root
 
-# 修改主机名为 NOGATE
+# 8. 修改主机名为 NOGATE
 sed -i 's/OpenWrt/NOGATE/g' package/base-files/files/bin/config_generate
 
-# 修改版本号描述，打上专属烙印
+# 9. 修改版本号描述，打上专属烙印
 sed -i "s/DISTRIB_DESCRIPTION='.*'/DISTRIB_DESCRIPTION='NOGATE V0 (Built by Actions #$GITHUB_RUN_NUMBER)'/g" package/base-files/files/etc/openwrt_release
