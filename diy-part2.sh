@@ -21,8 +21,11 @@ git clone --depth=1 https://github.com/openwrt/packages.git ./temp_packages
 cp -r ./temp_packages/libs/pcre package/libs/ 2>/dev/null
 cp -r ./temp_packages/libs/pcre2 package/libs/ 2>/dev/null
 rm -rf ./temp_packages
-mkdir -p staging_dir/target-x86_64_musl/usr/include/
-cp -r package/libs/pcre2/include/* staging_dir/target-x86_64_musl/usr/include/ 2>/dev/null
+# 增强补丁：确保头文件精准对齐，消灭 aircrack-ng 等插件的编译幻觉
+if [ -d "package/libs/pcre2/include" ]; then
+    mkdir -p staging_dir/target-x86_64_musl/usr/include/
+    cp -rf package/libs/pcre2/include/* staging_dir/target-x86_64_musl/usr/include/ 2>/dev/null
+fi
 
 # 4. 环境升级：解决 CMake 报错与升级 Golang 25.x
 find feeds/luci/ -name "CMakeLists.txt" -exec sed -i 's/cmake_minimum_required(VERSION 3\..*)/cmake_minimum_required(VERSION 3.25)/g' {} \;
