@@ -95,17 +95,6 @@ find feeds/packages/net/transmission -type f -name "*.init" -exec chmod +x {} \;
 sed -i '/fstrim/d' package/base-files/files/etc/crontabs/root 2>/dev/null
 echo "0 4 * * 1 /usr/sbin/fstrim -av" >> package/base-files/files/etc/crontabs/root
 
-# 7. 确保固件能被搬运工看到
-# ================== 📦 终极固件装箱逻辑 ==================
-find bin/targets/ -name "*.img*" -exec cp {} ./final_xjf_firmware.img \;
-find bin/targets/ -name "*.img.gz" -exec cp {} ./final_xjf_firmware.img.gz \;
-
-# 验证产物
-echo "=== 检查搬运结果 ==="
-ls -lh ./final_xjf_firmware.* || echo "警告：依然没找到固件，请检查编译日志"
-# =======================================================
-
-
 # 修改主机名为 XNasGate
 sed -i 's/OpenWrt/XNasGate/g' package/base-files/files/bin/config_generate
 
