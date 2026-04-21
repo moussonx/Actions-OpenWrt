@@ -29,7 +29,7 @@ cp -r package/libs/pcre2/include/* staging_dir/target-x86_64_musl/usr/include/ 2
 find feeds/luci/ -name "CMakeLists.txt" -exec sed -i 's/cmake_minimum_required(VERSION 3\..*)/cmake_minimum_required(VERSION 3.25)/g' {} \;
 # 暴力升级 Golang 25.x
 rm -rf feeds/packages/lang/golang
-git clone https://github.com/sbwml/packages_lang_golang -b 25.x feeds/packages/lang/golang
+git clone --depth 1 https://github.com/sbwml/packages_lang_golang -b 25.x feeds/packages/lang/golang
 
 # 5. 物理注入组件 (PassWall 2 + Cloudflared)
 mkdir -p package/community
@@ -38,22 +38,22 @@ curl -L https://github.com/Openwrt-Passwall/openwrt-passwall2/archive/refs/tags/
 unzip -q pw2.zip && mv openwrt-passwall2-26.4.20-1/luci-app-passwall2 package/community/ && rm -rf pw2.zip openwrt-passwall2-26.4.20-1
 sed -i '/tuic-client/d' package/community/luci-app-passwall2/Makefile
 
-# 5.1 AdGuardHome 精准降级 (解决 Go 版本过低导致的编译失败)
+# 6. AdGuardHome 精准降级 (解决 Go 版本过低导致的编译失败)
 rm -rf feeds/packages/net/adguardhome
 git clone --depth 1 -b v0.107.52 https://github.com/AdguardTeam/AdGuardHome.git feeds/packages/net/adguardhome
 
-# 5.2 Cloudflared (彻底根治 Username 报错：先杀后拉)
+# 7. Cloudflared (彻底根治 Username 报错：先杀后拉)
 rm -rf package/community/luci-app-cloudflared
 mkdir -p package/community/luci-app-cloudflared
 curl -Lf https://github.com/sbwml/luci-app-cloudflared/archive/refs/heads/main.tar.gz | tar xz -C package/community/luci-app-cloudflared --strip-components=1
 
-# 6. 其他天花板组件拉取
+# 8. 其他天花板组件拉取
 git clone --depth=1 https://github.com/linkease/istore.git package/community/istore
 git clone --depth=1 https://github.com/gdy666/luci-app-lucky.git package/community/luci-app-lucky
 git clone --depth=1 https://github.com/xiaozhuai/luci-app-filebrowser.git package/community/luci-app-filebrowser
 git clone --depth=1 https://github.com/asvow/luci-app-tailscale.git package/community/luci-app-tailscale
 
-# 7. 针对 VMM 环境的极致优化 (.config 注入)
+# 9. 针对 VMM 环境的极致优化 (.config 注入)
 cat >> .config <<EOF
 CONFIG_VIRTIO=y
 CONFIG_VIRTIO_NET=y
@@ -68,14 +68,14 @@ CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadowsocks_Rust_Server=n
 CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_tuic_client=n
 EOF
 
-# 8. 终端及定制：Shell 改 Zsh + Argon 主题 + 权限加固
+# 10. 终端及定制：Shell 改 Zsh + Argon 主题 + 权限加固
 sed -i 's/\/bin\/ash/\/bin\/zsh/g' package/base-files/files/etc/passwd
 echo "export PS1='%F{cyan}%n%f@%F{green}%m%f:%F{blue}%~%f$ '" >> package/base-files/files/etc/profile
 sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
 sed -i 's/pcollectd/collectd/g' feeds/luci/applications/luci-app-statistics/Makefile 2>/dev/null
 find package/community feeds/luci -type f -path "*/etc/init.d/*" -exec chmod +x {} \;
 
-# 9. 预设定时重启与 XGATE 命名（放置在最后，确保最高优先级）
+# 11. 预设定时重启与 XGATE 命名（放置在最后，确保最高优先级）
 mkdir -p package/base-files/files/etc/crontabs
 echo "0 4 * * * sleep 5 && touch /etc/banner && reboot" > package/base-files/files/etc/crontabs/root
 sed -i 's/OpenWrt/XGATE/g' package/base-files/files/bin/config_generate
