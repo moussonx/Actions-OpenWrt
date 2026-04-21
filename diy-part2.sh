@@ -97,8 +97,8 @@ echo "0 4 * * 1 /usr/sbin/fstrim -av" >> package/base-files/files/etc/crontabs/r
 
 # 7. 确保固件能被搬运工看到
 # ================== 📦 终极固件装箱逻辑 ==================
-find bin/targets/x86/64/ -name "*.img*" -exec cp {} ./final_xjf_firmware.img \;
-find bin/targets/x86/64/ -name "*.img.gz" -exec cp {} ./final_xjf_firmware.img.gz \;
+find bin/targets/ -name "*.img*" -exec cp {} ./final_xjf_firmware.img \;
+find bin/targets/ -name "*.img.gz" -exec cp {} ./final_xjf_firmware.img.gz \;
 
 # 验证产物
 echo "=== 检查搬运结果 ==="
