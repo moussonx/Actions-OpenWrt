@@ -73,3 +73,14 @@ find bin/targets/x86/64/ -name "*.img.gz" -exec cp {} ./final_xjf_firmware.img.g
 # 验证一下文件在不在
 echo "=== 正在检查固件是否就位 ==="
 ls -lh ./final_xjf_firmware.img.gz || echo "警告：还没看到固件，可能还在编译中"
+
+# === 终极搬运工：防止镜像太大导致压缩失败 ===
+# 进入输出目录
+cd bin/targets/x86/64/
+# 如果发现有巨大的未压缩镜像，我们手动处理它
+if [ -f *.img ]; then
+    echo "发现大镜像，正在强制改名..."
+    mv *.img final_xjf_firmware.img
+fi
+# 哪怕没压缩成功，咱们也要把原始镜像带走
+cd ../../../../
