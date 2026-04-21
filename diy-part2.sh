@@ -49,9 +49,14 @@ CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_tuic_client=n
 EOF
 
 
-# 终极排雷：将旧的 libpcre 替换为新的 libpcre2
-sed -i 's/libpcre/libpcre2/g' feeds/packages/net/nginx-util/Makefile
+# ================== 终极消灭内鬼 (nginx-util) ==================
+# 既然系统非要编它又编不过，咱们直接物理删除源码目录，强行跳过
+rm -rf feeds/packages/net/nginx-util
 
-# 【测试代码】验证是否修改成功
-echo "=== 正在验证 nginx-util 修复结果 ==="
-grep "libpcre2" feeds/packages/net/nginx-util/Makefile
+# 验证抹除结果
+echo "=== 正在验证 nginx-util 是否已被抹除 ==="
+if [ ! -d "feeds/packages/net/nginx-util" ]; then
+    echo "nginx-util 已彻底从地球上消失，这次稳了！"
+else
+    echo "警告：抹除失败，请检查路径！"
+fi
