@@ -46,9 +46,12 @@ CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray=y
 CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadowsocks_Rust_Client=n
 CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadowsocks_Rust_Server=n
 CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_tuic_client=n
-
-# ================== 🚑 终极排雷补丁2 (封杀 Nginx 及无用依赖) ==================
-CONFIG_PACKAGE_nginx=n
-CONFIG_PACKAGE_nginx-util=n
-CONFIG_PACKAGE_nginx-ssl=n
 EOF
+
+
+# 终极排雷：将旧的 libpcre 替换为新的 libpcre2
+sed -i 's/libpcre/libpcre2/g' feeds/packages/net/nginx-util/Makefile
+
+# 【测试代码】验证是否修改成功
+echo "=== 正在验证 nginx-util 修复结果 ==="
+grep "libpcre2" feeds/packages/net/nginx-util/Makefile
