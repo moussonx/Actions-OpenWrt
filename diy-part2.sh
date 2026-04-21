@@ -90,11 +90,11 @@ sed -i 's/pcollectd/collectd/g' feeds/luci/applications/luci-app-statistics/Make
 find package/community feeds/luci -type f -path "*/etc/init.d/*" -exec chmod +x {} \;
 find feeds/packages/net/transmission -type f -name "*.init" -exec chmod +x {} \; 2>/dev/null
 
-# 【NAS 极致优化：提高文件系统响应】优化 FSTRIM 周期，延长虚拟磁盘寿命
-sed -i '/fstrim/d' package/base-files/files/etc/crontabs/root 2>/dev/null
-echo "0 4 * * 1 /usr/sbin/fstrim -av" >> package/base-files/files/etc/crontabs/root
+# 【NAS 极致优化：提高文件系统响应】优化 FSTRIM 周期，延长虚拟磁盘寿命先创建目录，再用追加方式写入定时任务，防止找不到文件
+mkdir -p package/base-files/files/etc/crontabs
+echo "0 4 * * * sleep 5 && touch /etc/banner && reboot" >> package/base-files/files/etc/crontabs/root
 
-# 修改主机名为 XNasGate
+# 修改主机名为 NOGATE
 sed -i 's/OpenWrt/NOGATE/g' package/base-files/files/bin/config_generate
 
 # 修改版本号描述，打上专属烙印
