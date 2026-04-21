@@ -38,7 +38,11 @@ curl -L https://github.com/Openwrt-Passwall/openwrt-passwall2/archive/refs/tags/
 unzip -q pw2.zip && mv openwrt-passwall2-26.4.20-1/luci-app-passwall2 package/community/ && rm -rf pw2.zip openwrt-passwall2-26.4.20-1
 sed -i '/tuic-client/d' package/community/luci-app-passwall2/Makefile
 
-# Cloudflared (彻底根治 Username 报错：先杀后拉)
+# 5.1 AdGuardHome 精准降级 (解决 Go 版本过低导致的编译失败)
+rm -rf feeds/packages/net/adguardhome
+git clone --depth 1 -b v0.107.52 https://github.com/AdguardTeam/AdGuardHome.git feeds/packages/net/adguardhome
+
+# 5.2 Cloudflared (彻底根治 Username 报错：先杀后拉)
 rm -rf package/community/luci-app-cloudflared
 mkdir -p package/community/luci-app-cloudflared
 curl -Lf https://github.com/sbwml/luci-app-cloudflared/archive/refs/heads/main.tar.gz | tar xz -C package/community/luci-app-cloudflared --strip-components=1
