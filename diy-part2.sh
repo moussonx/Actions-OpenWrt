@@ -65,3 +65,7 @@ if [ ! -d "feeds/packages/net/nginx-util" ]; then
 else
     echo "警告：抹除失败，请检查路径！"
 fi
+
+# 强制搜寻生成的固件并移动到 bin 目录，防止搬运失败
+mkdir -p bin/targets/x86/64/
+find bin/targets/x86/64/ -name "*.img.gz" -exec cp {} bin/targets/x86/64/final_firmware.img.gz \;
