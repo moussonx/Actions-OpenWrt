@@ -49,6 +49,11 @@ CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_tuic_client=n
 EOF
 
 
+# 额外顺手清理下可能导致冲突的旧版 golang 依赖（如果有）
+rm -rf feeds/packages/lang/golang
+git clone https://github.com/sbwml/packages_lang_golang -b 23.x feeds/packages/lang/golang
+
+
 # ================== 终极消灭内鬼 (nginx-util) ==================
 # 既然系统非要编它又编不过，咱们直接物理删除源码目录，强行跳过
 rm -rf feeds/packages/net/nginx-util
