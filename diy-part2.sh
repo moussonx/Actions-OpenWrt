@@ -66,6 +66,10 @@ else
     echo "警告：抹除失败，请检查路径！"
 fi
 
-# 强制搜寻生成的固件并移动到 bin 目录，防止搬运失败
-mkdir -p bin/targets/x86/64/
-find bin/targets/x86/64/ -name "*.img.gz" -exec cp {} bin/targets/x86/64/final_firmware.img.gz \;
+# 7. 确保固件能被搬运工看到
+# 我们把生成的固件直接拷贝到根目录下，起个响亮的名字
+find bin/targets/x86/64/ -name "*.img.gz" -exec cp {} ./final_xjf_firmware.img.gz \;
+
+# 验证一下文件在不在
+echo "=== 正在检查固件是否就位 ==="
+ls -lh ./final_xjf_firmware.img.gz || echo "警告：还没看到固件，可能还在编译中"
