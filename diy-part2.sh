@@ -29,7 +29,7 @@ git clone --depth=1 https://github.com/linkease/istore.git package/community/ist
 git clone --depth=1 https://github.com/gdy666/luci-app-lucky.git package/community/luci-app-lucky
 git clone --depth=1 https://github.com/xiaozhuai/luci-app-filebrowser.git package/community/luci-app-filebrowser
 
-# 5. 针对 XJFNAS VMM 环境的极致优化
+# 5. 针对 XJFNAS VMM 环境的极致优化及排雷
 cat >> .config <<EOF
 CONFIG_VIRTIO=y
 CONFIG_VIRTIO_NET=y
@@ -37,4 +37,13 @@ CONFIG_VIRTIO_BLK=y
 CONFIG_PACKAGE_fstrim=y
 CONFIG_TARGET_KERNEL_PARTSIZE=64
 CONFIG_TARGET_ROOTFS_PARTSIZE=1024
+
+# ================== 🌟 核心引擎强制保活 ==================
+CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_SingBox=y
+CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray=y
+
+# ================== 🚑 终极排雷补丁 (封杀 Rust) ==================
+CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadowsocks_Rust_Client=n
+CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadowsocks_Rust_Server=n
+CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_tuic_client=n
 EOF
