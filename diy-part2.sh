@@ -46,4 +46,9 @@ CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray=y
 CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadowsocks_Rust_Client=n
 CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadowsocks_Rust_Server=n
 CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_tuic_client=n
+
+# ================== 🚑 终极排雷补丁2 (封杀 Nginx 及无用依赖) ==================
+CONFIG_PACKAGE_nginx=n
+CONFIG_PACKAGE_nginx-util=n
+CONFIG_PACKAGE_nginx-ssl=n
 EOF
