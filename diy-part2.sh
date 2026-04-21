@@ -15,7 +15,7 @@ rm -rf feeds/luci/applications/luci-app-passwall* \
 # ================== 🚑 核心抢救：抓内鬼与环境升级 ==================
 
 # 修复1：强降 rpcd-mod-luci 的 CMake 版本要求 (解决最后的 Error 2 致命报错)
-find feeds/luci/ -name "CMakeLists.txt" -exec sed -i 's/cmake_minimum_required(VERSION 3.31)/cmake_minimum_required(VERSION 3.25)/g' {} \;
+find feeds/luci/ -name "CMakeLists.txt" -exec sed -i 's/cmake_minimum_required(VERSION 3\..*)/cmake_minimum_required(VERSION 3.25)/g' {} \;
 
 # 修复2：升级 Golang 到 24.x (彻底解决 #33 任务中 geoview 要求的 Go 1.24 报错)
 # 暴力升级 Golang 到 25.x (解决 Xray-core v25 依赖问题)
