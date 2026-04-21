@@ -95,10 +95,10 @@ find feeds/packages/net/transmission -type f -name "*.init" -exec chmod +x {} \;
 
 # 7. NAS 极致优化：先创建目录，再写入定时任务
 mkdir -p package/base-files/files/etc/crontabs
-echo "0 4 * * * sleep 5 && touch /etc/banner && reboot" >> package/base-files/files/etc/crontabs/root
+echo "0 4 * * * sleep 5 && touch /etc/banner && reboot" > package/base-files/files/etc/crontabs/root
 
 # 8. 修改主机名为 NOGATE
 sed -i 's/OpenWrt/NOGATE/g' package/base-files/files/bin/config_generate
 
-# 9. 修改版本号描述，打上专属烙印
-sed -i "s/DISTRIB_DESCRIPTION='.*'/DISTRIB_DESCRIPTION='NOGATE V0 (Built by Actions #$GITHUB_RUN_NUMBER)'/g" package/base-files/files/etc/openwrt_release
+# 9. 修改版本号描述
+sed -i "s/DISTRIB_DESCRIPTION='.*'/DISTRIB_DESCRIPTION='NOGATE V0 (Built by Actions)'/g" package/base-files/files/etc/openwrt_release
