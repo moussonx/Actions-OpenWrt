@@ -104,3 +104,10 @@ find bin/targets/ -name "*.img.gz" -exec cp {} ./final_xjf_firmware.img.gz \;
 echo "=== 检查搬运结果 ==="
 ls -lh ./final_xjf_firmware.* || echo "警告：依然没找到固件，请检查编译日志"
 # =======================================================
+
+
+# 修改主机名为 XNasGate
+sed -i 's/OpenWrt/XNasGate/g' package/base-files/files/bin/config_generate
+
+# 修改版本号描述，打上专属烙印
+sed -i "s/DISTRIB_DESCRIPTION='.*'/DISTRIB_DESCRIPTION='XNasGate Super-Edition (Built by Actions #$GITHUB_RUN_NUMBER)'/g" package/base-files/files/etc/openwrt_release
