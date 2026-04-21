@@ -51,9 +51,9 @@ CONFIG_PACKAGE_fstrim=y
 CONFIG_TARGET_KERNEL_PARTSIZE=64
 CONFIG_TARGET_ROOTFS_PARTSIZE=1024
 
-# ================== 🌟 核心引擎强制保活 ==================
-CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_SingBox=y
-CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray=y
+# ================== 🌟 核心引擎强制保活 (对应 .config 新规) ==================
+CONFIG_PACKAGE_xray-core=y
+CONFIG_PACKAGE_sing-box=y
 
 # ================== 🚑 终极排雷补丁 (封杀 Rust) ==================
 CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadowsocks_Rust_Client=n
