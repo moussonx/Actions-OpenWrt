@@ -10,7 +10,7 @@ rm -rf feeds/luci/applications/luci-app-passwall* \
        feeds/luci/applications/luci-app-cloudflared \
        feeds/packages/net/haproxy \
        feeds/packages/net/geoview \
-       feeds/packages/net/cloudflared
+       feeds/packages/net/cloudflared \
        feeds/luci/applications/luci-app-transmission \
        feeds/packages/net/transmission \
        feeds/packages/net/aria2
