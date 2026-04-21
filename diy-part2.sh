@@ -53,19 +53,36 @@ git clone --depth=1 https://github.com/gdy666/luci-app-lucky.git package/communi
 git clone --depth=1 https://github.com/xiaozhuai/luci-app-filebrowser.git package/community/luci-app-filebrowser
 git clone --depth=1 https://github.com/asvow/luci-app-tailscale.git package/community/luci-app-tailscale
 
-# 9. 针对 VMM 环境的极致优化 (.config 注入)
+# 9. 针对 VMM 环境与日志优化的极致配置
 cat >> .config <<EOF
+# 核心加速与虚拟机驱动
 CONFIG_VIRTIO=y
 CONFIG_VIRTIO_NET=y
 CONFIG_VIRTIO_BLK=y
 CONFIG_PACKAGE_fstrim=y
+CONFIG_PACKAGE_luci-app-turboacc=y
+CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_OFFLOADING=y
+CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_BBR_CCA=y
+
+# 存储与分区
 CONFIG_TARGET_KERNEL_PARTSIZE=64
 CONFIG_TARGET_ROOTFS_PARTSIZE=1024
+
+# 科学上网核心
 CONFIG_PACKAGE_xray-core=y
 CONFIG_PACKAGE_sing-box=y
 CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadowsocks_Rust_Client=n
 CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadowsocks_Rust_Server=n
 CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_tuic_client=n
+
+# 新增：减少“尝试连接”报错日志的优化项
+# 1. 禁用不必要的日志记录
+# CONFIG_KMOD_PCIE_ASPM_DEBUG is not set
+# 2. 优化 DNSMASQ，防止 IPv6 解析死循环导致的日志刷屏
+CONFIG_PACKAGE_dnsmasq_full_dhcpv6=y
+# 3. 开启连接追踪优化，减少失效连接挂死
+CONFIG_NF_CONNTRACK_EVENTS=y
+CONFIG_NF_CONNTRACK_TIMEOUT=y
 EOF
 
 # 10. 终端及定制：Shell 改 Zsh + Argon 主题 + 权限加固
