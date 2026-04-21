@@ -6,7 +6,7 @@ sed -i 's/192.168.1.1/192.168.1.2/g' package/base-files/files/bin/config_generat
 # 2. 解决冲突：物理删除 feeds 里的旧插件，确保纯净环境
 rm -rf feeds/luci/applications/luci-app-passwall*
 rm -rf feeds/luci/applications/luci-app-filebrowser
-rm -rf feeds/luci/applications/luci-app-lucky
+[ -d feeds/luci/applications/luci-app-lucky ] && rm -rf feeds/luci/applications/luci-app-lucky
 rm -rf feeds/packages/net/haproxy
 rm -rf feeds/packages/net/geoview
 
