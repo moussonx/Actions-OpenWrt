@@ -3,12 +3,14 @@
 # 1. 基础配置：修改默认管理 IP 为 192.168.1.2
 sed -i 's/192.168.1.1/192.168.1.2/g' package/base-files/files/bin/config_generate
 
-# 2. 解决冲突：物理删除 feeds 里的旧插件，确保纯净环境
+# 2. 解决冲突：物理删除 feeds 里的旧插件，确保纯净环境 (对照：加入了 cloudflared 清理)
 rm -rf feeds/luci/applications/luci-app-passwall* \
        feeds/luci/applications/luci-app-filebrowser \
        feeds/luci/applications/luci-app-lucky \
+       feeds/luci/applications/luci-app-cloudflared \
        feeds/packages/net/haproxy \
-       feeds/packages/net/geoview
+       feeds/packages/net/geoview \
+       feeds/packages/net/cloudflared
 
 # ================== 🚑 核心抢救：抓内鬼与环境升级 ==================
 
@@ -32,12 +34,13 @@ sed -i '/tuic-client/d' package/community/luci-app-passwall2/Makefile
 
 # ==============================================================
 
-# 4. 拉取天花板组件 (iStore + Lucky + FileBrowser + Tailscale)
+# 4. 拉取天花板组件 (iStore + Lucky + FileBrowser + Tailscale + Cloudflared)
 git clone --depth=1 https://github.com/linkease/istore.git package/community/istore
 git clone --depth=1 https://github.com/gdy666/luci-app-lucky.git package/community/luci-app-lucky
 git clone --depth=1 https://github.com/xiaozhuai/luci-app-filebrowser.git package/community/luci-app-filebrowser
-# 新增：异地组网天花板
 git clone --depth=1 https://github.com/asvow/luci-app-tailscale.git package/community/luci-app-tailscale
+# 对照补强：注入 Cloudflare Tunnel 源码 (对应 config 中的三剑客需求)
+git clone --depth=1 https://github.com/sbwml/luci-app-cloudflared package/community/luci-app-cloudflared
 
 # 5. 针对 XJFNAS VMM 环境的极致优化及排雷
 cat >> .config <<EOF
@@ -59,10 +62,9 @@ CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_tuic_client=n
 EOF
 
 # 6. 终极消灭内鬼 (nginx-util)
-# 既然系统非要编它又编不过，咱们直接物理删除源码目录，强行跳过
 rm -rf feeds/packages/net/nginx-util
 
-# 验证抹除结果 (保留你原代码的严谨验证逻辑)
+# 验证抹除结果
 echo "=== 正在验证 nginx-util 是否已被抹除 ==="
 if [ ! -d "feeds/packages/net/nginx-util" ]; then
     echo "nginx-util 已彻底从地球上消失，这次稳了！"
@@ -78,8 +80,9 @@ sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/M
 # 【Statistics 统计分析修复】解决统计图表不显示的问题
 sed -i 's/pcollectd/collectd/g' feeds/luci/applications/luci-app-statistics/Makefile 2>/dev/null
 
-# 【ZeroTier 权限固化】确保异地组网脚本有执行权限
+# 【权限固化】确保组网脚本有执行权限 (对照：补强了 Tailscale 的权限检查)
 chmod +x package/feeds/luci/luci-app-zerotier/root/etc/init.d/zerotier 2>/dev/null
+[ -d package/community/luci-app-tailscale ] && chmod +x package/community/luci-app-tailscale/root/etc/init.d/tailscale 2>/dev/null
 
 # 【NAS 极致优化：提高文件系统响应】优化 FSTRIM 周期，延长虚拟磁盘寿命
 sed -i '/fstrim/d' package/base-files/files/etc/crontabs/root 2>/dev/null
@@ -87,11 +90,10 @@ echo "0 4 * * 1 /usr/sbin/fstrim -av" >> package/base-files/files/etc/crontabs/r
 
 # 7. 确保固件能被搬运工看到
 # ================== 📦 终极固件装箱逻辑 ==================
-# 无论是否压缩成功，把所有生成的 img 和 gz 全部捞出来改名，丢到根目录
 find bin/targets/x86/64/ -name "*.img*" -exec cp {} ./final_xjf_firmware.img \;
 find bin/targets/x86/64/ -name "*.img.gz" -exec cp {} ./final_xjf_firmware.img.gz \;
 
-# 验证产物 (保留你的验证逻辑)
+# 验证产物
 echo "=== 检查搬运结果 ==="
 ls -lh ./final_xjf_firmware.* || echo "警告：依然没找到固件，请检查编译日志"
 # =======================================================
