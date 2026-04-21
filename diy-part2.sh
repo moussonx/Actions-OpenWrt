@@ -22,6 +22,10 @@ cp -r ./temp_packages/libs/pcre package/libs/ 2>/dev/null
 cp -r ./temp_packages/libs/pcre2 package/libs/ 2>/dev/null
 rm -rf ./temp_packages
 
+# 补丁：强行链接底层库，防止 aircrack-ng 等插件报依赖缺失
+mkdir -p staging_dir/target-x86_64_musl/usr/include/
+cp -r package/libs/pcre2/include/* staging_dir/target-x86_64_musl/usr/include/ 2>/dev/null
+
 # ================== 🚑 核心抢救：抓内鬼与环境升级 ==================
 
 # 修复1：强降 rpcd-mod-luci 的 CMake 版本要求 (解决最后的 Error 2 致命报错)
