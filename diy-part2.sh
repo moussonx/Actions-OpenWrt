@@ -96,7 +96,7 @@ sed -i '/fstrim/d' package/base-files/files/etc/crontabs/root 2>/dev/null
 echo "0 4 * * 1 /usr/sbin/fstrim -av" >> package/base-files/files/etc/crontabs/root
 
 # 修改主机名为 XNasGate
-sed -i 's/OpenWrt/XNasGate/g' package/base-files/files/bin/config_generate
+sed -i 's/OpenWrt/NOGATE/g' package/base-files/files/bin/config_generate
 
 # 修改版本号描述，打上专属烙印
-sed -i "s/DISTRIB_DESCRIPTION='.*'/DISTRIB_DESCRIPTION='XNasGate Super-Edition (Built by Actions #$GITHUB_RUN_NUMBER)'/g" package/base-files/files/etc/openwrt_release
+sed -i "s/DISTRIB_DESCRIPTION='.*'/DISTRIB_DESCRIPTION='NOGATE Super-Edition (Built by Actions #$GITHUB_RUN_NUMBER)'/g" package/base-files/files/etc/openwrt_release
