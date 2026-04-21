@@ -109,8 +109,8 @@ find feeds/packages/net/transmission -type f -name "*.init" -exec chmod +x {} \;
 mkdir -p package/base-files/files/etc/crontabs
 echo "0 4 * * * sleep 5 && touch /etc/banner && reboot" > package/base-files/files/etc/crontabs/root
 
-# 8. 修改主机名为 NOGATE
-sed -i 's/OpenWrt/NOGATE/g' package/base-files/files/bin/config_generate
+# 8. 修改主机名为 XGATE
+sed -i 's/OpenWrt/XGATE/g' package/base-files/files/bin/config_generate
 
 # 9. 修改版本描述
-sed -i "s/DISTRIB_DESCRIPTION='.*'/DISTRIB_DESCRIPTION='NOGATE V0 (Built by Actions)'/g" package/base-files/files/etc/openwrt_release
+sed -i "s/DISTRIB_DESCRIPTION='.*'/DISTRIB_DESCRIPTION='XGATE V0 (Built by Actions)'/g" package/base-files/files/etc/openwrt_release
