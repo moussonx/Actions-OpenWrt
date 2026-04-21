@@ -16,6 +16,11 @@ rm -rf feeds/packages/net/aria2
 
 # 强制修复 libpcre 依赖丢失问题
 sed -i 's/DEPENDS:=+libpcre/DEPENDS:=+libpcre2/g' feeds/packages/net/aircrack-ng/Makefile 2>/dev/null
+# 强制补齐被误伤的底层依赖库，消灭日志里的 WARNING
+git clone --depth=1 https://github.com/openwrt/packages.git ./temp_packages
+cp -r ./temp_packages/libs/pcre package/libs/ 2>/dev/null
+cp -r ./temp_packages/libs/pcre2 package/libs/ 2>/dev/null
+rm -rf ./temp_packages
 
 # ================== 🚑 核心抢救：抓内鬼与环境升级 ==================
 
@@ -44,7 +49,10 @@ git clone --depth=1 https://github.com/linkease/istore.git package/community/ist
 git clone --depth=1 https://github.com/gdy666/luci-app-lucky.git package/community/luci-app-lucky
 git clone --depth=1 https://github.com/xiaozhuai/luci-app-filebrowser.git package/community/luci-app-filebrowser
 git clone --depth=1 https://github.com/asvow/luci-app-tailscale.git package/community/luci-app-tailscale
-git clone --depth=1 https://github.com/sbwml/luci-app-cloudflared.git package/community/luci-app-cloudflared
+
+# 放弃 git clone，直接下载源码包解压，解决 Username 报错
+mkdir -p package/community/luci-app-cloudflared
+curl -Lf https://github.com/sbwml/luci-app-cloudflared/archive/refs/heads/main.tar.gz | tar xz -C package/community/luci-app-cloudflared --strip-components=1
 
 # 5. 针对 XJFNAS VMM 环境的极致优化及排雷
 cat >> .config <<EOF
@@ -93,12 +101,12 @@ sed -i 's/pcollectd/collectd/g' feeds/luci/applications/luci-app-statistics/Make
 find package/community feeds/luci -type f -path "*/etc/init.d/*" -exec chmod +x {} \;
 find feeds/packages/net/transmission -type f -name "*.init" -exec chmod +x {} \; 2>/dev/null
 
-# 7. NAS 极致优化：先创建目录，再写入定时任务
+# 7. 预设定时重启 (每天凌晨4点)
 mkdir -p package/base-files/files/etc/crontabs
 echo "0 4 * * * sleep 5 && touch /etc/banner && reboot" > package/base-files/files/etc/crontabs/root
 
 # 8. 修改主机名为 NOGATE
 sed -i 's/OpenWrt/NOGATE/g' package/base-files/files/bin/config_generate
 
-# 9. 修改版本号描述
+# 9. 修改版本描述
 sed -i "s/DISTRIB_DESCRIPTION='.*'/DISTRIB_DESCRIPTION='NOGATE V0 (Built by Actions)'/g" package/base-files/files/etc/openwrt_release
