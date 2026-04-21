@@ -11,6 +11,9 @@ rm -rf feeds/luci/applications/luci-app-passwall* \
        feeds/packages/net/haproxy \
        feeds/packages/net/geoview \
        feeds/packages/net/cloudflared
+       feeds/luci/applications/luci-app-transmission \
+       feeds/packages/net/transmission \
+       feeds/packages/net/aria2
 
 # ================== 🚑 核心抢救：抓内鬼与环境升级 ==================
 
@@ -74,6 +77,11 @@ fi
 
 # === 极致兼容性补丁 (针对大满贯插件优化) ===
 
+# 【终端极致定制】默认 Shell 改为 Zsh，并开启彩色提示符
+sed -i 's/\/bin\/ash/\/bin\/zsh/g' package/base-files/files/etc/passwd
+# 预设一个简单的 Zsh 主题，让 SSH 进去后不只是白字
+echo "export PS1='%F{cyan}%n%f@%F{green}%m%f:%F{blue}%~%f$ '" >> package/base-files/files/etc/profile
+
 # 【Argon 主题极致定制】强制预设 Argon 为默认主题
 sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
 
@@ -83,6 +91,9 @@ sed -i 's/pcollectd/collectd/g' feeds/luci/applications/luci-app-statistics/Make
 # 【权限固化】确保组网脚本有执行权限 (对照：补强了 Tailscale 的权限检查)
 chmod +x package/feeds/luci/luci-app-zerotier/root/etc/init.d/zerotier 2>/dev/null
 [ -d package/community/luci-app-tailscale ] && chmod +x package/community/luci-app-tailscale/root/etc/init.d/tailscale 2>/dev/null
+
+# 【权限固化】确保 Transmission 脚本和网页控制台正常
+chmod +x feeds/packages/net/transmission/files/transmission.init 2>/dev/null
 
 # 【NAS 极致优化：提高文件系统响应】优化 FSTRIM 周期，延长虚拟磁盘寿命
 sed -i '/fstrim/d' package/base-files/files/etc/crontabs/root 2>/dev/null
