@@ -42,8 +42,7 @@ git clone --depth=1 https://github.com/linkease/istore.git package/community/ist
 git clone --depth=1 https://github.com/gdy666/luci-app-lucky.git package/community/luci-app-lucky
 git clone --depth=1 https://github.com/xiaozhuai/luci-app-filebrowser.git package/community/luci-app-filebrowser
 git clone --depth=1 https://github.com/asvow/luci-app-tailscale.git package/community/luci-app-tailscale
-# 对照补强：注入 Cloudflare Tunnel 源码 (对应 config 中的三剑客需求)
-git clone --depth=1 https://github.com/sbwml/luci-app-cloudflared package/community/luci-app-cloudflared
+git clone --depth=1 https://github.com/sbwml/luci-app-cloudflared.git package/community/luci-app-cloudflared
 
 # 5. 针对 XJFNAS VMM 环境的极致优化及排雷
 cat >> .config <<EOF
