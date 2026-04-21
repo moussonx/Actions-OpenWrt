@@ -67,20 +67,12 @@ else
 fi
 
 # 7. 确保固件能被搬运工看到
-# 我们把生成的固件直接拷贝到根目录下，起个响亮的名字
+# ================== 📦 终极固件装箱逻辑 ==================
+# 无论是否压缩成功，把所有生成的 img 和 gz 全部捞出来改名，丢到根目录
+find bin/targets/x86/64/ -name "*.img*" -exec cp {} ./final_xjf_firmware.img \;
 find bin/targets/x86/64/ -name "*.img.gz" -exec cp {} ./final_xjf_firmware.img.gz \;
 
-# 验证一下文件在不在
-echo "=== 正在检查固件是否就位 ==="
-ls -lh ./final_xjf_firmware.img.gz || echo "警告：还没看到固件，可能还在编译中"
-
-# === 终极搬运工：防止镜像太大导致压缩失败 ===
-# 进入输出目录
-cd bin/targets/x86/64/
-# 如果发现有巨大的未压缩镜像，我们手动处理它
-if [ -f *.img ]; then
-    echo "发现大镜像，正在强制改名..."
-    mv *.img final_xjf_firmware.img
-fi
-# 哪怕没压缩成功，咱们也要把原始镜像带走
-cd ../../../../
+# 验证一下
+echo "=== 检查搬运结果 ==="
+ls -lh ./final_xjf_firmware.* || echo "警告：依然没找到固件，请检查编译日志"
+# =======================================================
