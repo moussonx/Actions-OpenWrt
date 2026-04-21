@@ -88,12 +88,9 @@ sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/M
 # 【Statistics 统计分析修复】解决统计图表不显示的问题
 sed -i 's/pcollectd/collectd/g' feeds/luci/applications/luci-app-statistics/Makefile 2>/dev/null
 
-# 【权限固化】确保组网脚本有执行权限 (对照：补强了 Tailscale 的权限检查)
-chmod +x package/feeds/luci/luci-app-zerotier/root/etc/init.d/zerotier 2>/dev/null
-[ -d package/community/luci-app-tailscale ] && chmod +x package/community/luci-app-tailscale/root/etc/init.d/tailscale 2>/dev/null
-
-# 【权限固化】确保 Transmission 脚本和网页控制台正常
-chmod +x feeds/packages/net/transmission/files/transmission.init 2>/dev/null
+# 【权限固化】全盘扫描并加固所有 community 和 feeds 插件的启动脚本权限
+find package/community feeds/luci -type f -path "*/etc/init.d/*" -exec chmod +x {} \;
+find feeds/packages/net/transmission -type f -name "*.init" -exec chmod +x {} \; 2>/dev/null
 
 # 【NAS 极致优化：提高文件系统响应】优化 FSTRIM 周期，延长虚拟磁盘寿命
 sed -i '/fstrim/d' package/base-files/files/etc/crontabs/root 2>/dev/null
