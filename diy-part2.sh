@@ -3,16 +3,19 @@
 # 1. 基础配置：修改默认管理 IP 为 192.168.1.2
 sed -i 's/192.168.1.1/192.168.1.2/g' package/base-files/files/bin/config_generate
 
-# 2. 解决冲突：物理删除 feeds 里的旧插件，确保纯净环境 (对照：加入了 cloudflared 清理)
-rm -rf feeds/luci/applications/luci-app-passwall* \
-       feeds/luci/applications/luci-app-filebrowser \
-       feeds/luci/applications/luci-app-lucky \
-       feeds/luci/applications/luci-app-cloudflared \
-       feeds/packages/net/haproxy \
-       feeds/packages/net/geoview \
-       feeds/luci/applications/luci-app-transmission \
-       feeds/packages/net/transmission \
-       feeds/packages/net/aria2
+# 2. 解决冲突：精准删除，严禁使用星号以免误伤底层库
+rm -rf feeds/luci/applications/luci-app-passwall
+rm -rf feeds/luci/applications/luci-app-filebrowser
+rm -rf feeds/luci/applications/luci-app-lucky
+rm -rf feeds/luci/applications/luci-app-cloudflared
+rm -rf feeds/packages/net/haproxy
+rm -rf feeds/packages/net/geoview
+rm -rf feeds/luci/applications/luci-app-transmission
+rm -rf feeds/packages/net/transmission
+rm -rf feeds/packages/net/aria2
+
+# 强制修复 libpcre 依赖丢失问题
+sed -i 's/DEPENDS:=+libpcre/DEPENDS:=+libpcre2/g' feeds/packages/net/aircrack-ng/Makefile 2>/dev/null
 
 # ================== 🚑 核心抢救：抓内鬼与环境升级 ==================
 
