@@ -98,8 +98,7 @@ jobs:
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
         name: OpenWrt_SuperFirmware_v25
-        # 【保险3】直接指向物理路径，不再完全依赖变量，防止变量丢失
-        path: openwrt/bin/targets/*/*/*
+        path: ${{ env.FIRMWARE }}/*
 
     - name: Upload firmware to release
       uses: softprops/action-gh-release@v1
@@ -107,7 +106,10 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ env.FILE_DATE }}
-        # 同样使用物理通配符，确保万无一失
-        files: openwrt/bin/targets/*/*/*
-    
+        # 核心改进：即使手动点火没填 Tag，也会自动生成：日期-任务号
+        tag_name: ${{ github.event.inputs.release_tag || env.FILE_DATE }}-${{ github.run_number }}
+        body: |
+          编译时间：${{ env.FILE_DATE }}
+          运行编号：#${{ github.run_number }}
+          主要插件：Passwall 2, Lucky, Tailscale, Cloudflared
+        files: ${{ env.FIRMWARE }}/*
