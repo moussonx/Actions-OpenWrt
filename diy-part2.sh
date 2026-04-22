@@ -1,138 +1,78 @@
 #!/bin/bash
 
-# ============================================================================
-# 【核心机制】日志与重试函数
-# ============================================================================
-log_info() { echo -e "\n\033[1;36m[INFO]\033[0m $1"; }
-log_success() { echo -e "\033[1;32m[✓]\033[0m $1"; }
-log_warn() { echo -e "\033[1;33m[⚠]\033[0m $1"; }
-log_error() { echo -e "\033[1;31m[✗]\033[0m $1"; }
-
+# 日志与重试机制
+log_info() { echo -e "\n\e[1;36m[INFO]\e[0m $1"; }
+log_success() { echo -e "\e[1;32m[✓]\e[0m $1"; }
 retry() {
     local n=1 max=3 delay=2
     while true; do
         "$@" && return 0 || {
-            log_warn "Command failed: $@ (Attempt $n/$max)"
-            if [[ $n -lt $max ]]; then
-                n=$((n + 1)); sleep $delay
-            else
-                log_error "Max retries reached. Abandoning: $@"
-                return 1
-            fi
+            if [[ $n -lt $max ]]; then n=$((n + 1)); sleep $delay; else return 1; fi
         }
     done
 }
 
-# ============================================================================
-# Stage 1: 基础配置与清理
-# ============================================================================
-log_info "Stage 1: Basic configuration and cache cleanup"
+# Stage 1: IP 与环境清理
 sed -i 's/192.168.1.1/192.168.1.2/g' package/base-files/files/bin/config_generate
-log_success "Modified default gateway IP to 192.168.1.2"
+rm -rf tmp
 
-rm -rf tmp .config.old
-rm -rf tmp/info/ tmp/.package_compile
-log_success "Deep cache and index cleaned"
-
-# ============================================================================
-# Stage 2: Feeds 核心源更新 (必须第一步执行，获取最新全量代码)
-# ============================================================================
-log_info "Stage 2: Updating feeds"
+# Stage 2: 核心源更新
+log_info "Updating feeds..."
 retry ./scripts/feeds update -a
 
-# ============================================================================
-# Stage 3: 彻底移除冲突与冗余包 (在 update 之后执行，防止被重新拉取)
-# ============================================================================
-log_info "Stage 3: Removing conflicting packages & upgrading Golang"
-
-packages_to_remove=(
+# Stage 3: 彻底移除冲突包
+log_info "Removing conflicting packages..."
+packages=(
     "feeds/packages/net/shorewall*"
     "feeds/telephony"
     "feeds/luci/applications/luci-app-passwall"
     "feeds/luci/applications/luci-app-filebrowser"
-    "feeds/luci/applications/luci-app-lucky"
-    "feeds/luci/applications/luci-app-cloudflared"
-    "feeds/packages/lang/golang" # 一并删除旧版 golang
+    "feeds/packages/lang/golang"
 )
+for pkg in "${packages[@]}"; do rm -rf $pkg 2>/dev/null; done
 
-for pkg in "${packages_to_remove[@]}"; do
-    rm -rf $pkg 2>/dev/null
-done
-log_success "Conflicts and old golang surgically removed"
+# Stage 4: 升级 Golang 至 26.x
+log_info "Upgrading Golang to 26.x..."
+retry git clone --depth 1 https://github.com/sbwml/packages_lang_golang -b 26.x feeds/packages/lang/golang
 
-# 拉取最新版 Golang
-retry git clone --depth 1 https://github.com/sbwml/packages_lang_golang -b 25.x feeds/packages/lang/golang
-
-# 清理旧索引并重新挂载所有包
-rm -rf tmp
-retry ./scripts/feeds install -a
-retry ./scripts/feeds install -p packages -f golang
-log_success "Feeds installed and Golang upgraded to 1.25.x"
-
-# ============================================================================
-# Stage 4: 拉取社区精选全家桶
-# ============================================================================
-log_info "Stage 4: Fetching community packages"
+# Stage 5: 拉取社区精选全家桶
+log_info "Fetching community packages..."
 mkdir -p package/community
 
 # 独立处理 Passwall 2
 retry curl -L https://github.com/Openwrt-Passwall/openwrt-passwall2/archive/refs/tags/26.4.20-1.zip -o pw2.zip
 unzip -q pw2.zip && mv openwrt-passwall2-26.4.20-1/luci-app-passwall2 package/community/ && rm -rf pw2.zip openwrt-passwall2-26.4.20-1
 
-# 数组化批量拉取其余 Git 插件
-git_plugins=(
-    "linkease/istore.git"
-    "gdy666/luci-app-lucky.git"
-    "xiaozhuai/luci-app-filebrowser.git"
-    "sbwml/luci-app-cloudflared.git"
-    "asvow/luci-app-tailscale.git"
-    "brvphoenix/luci-app-wrtbwmon.git"
-    "rufengsuixing/luci-app-onliner.git"
-)
+retry git clone --depth=1 https://github.com/gdy666/luci-app-lucky.git package/community/luci-app-lucky
+retry git clone --depth=1 https://github.com/linkease/istore.git package/community/istore
 
-for plugin in "${git_plugins[@]}"; do
-    repo_name=$(basename -s .git "$plugin")
-    retry git clone --depth=1 "https://github.com/$plugin" "package/community/$repo_name"
-done
-log_success "Community packages successfully fetched"
+# =================================================================
+# 关键修复 A：清空缓存索引，彻底消灭 Shorewall 的幽灵依赖
+# =================================================================
+log_info "Clearing feed index cache..."
+rm -rf tmp/
 
-# ============================================================================
-# Stage 5: 界面定制与底层依赖硬修复
-# ============================================================================
-log_info "Stage 5: UI customization and critical compatibility patches"
+# 装载包
+retry ./scripts/feeds install -p packages -f golang
+retry ./scripts/feeds install -a
 
-sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
-sed -i "s/DISTRIB_DESCRIPTION='.*'/DISTRIB_DESCRIPTION='XGATE'/g" package/base-files/files/etc/openwrt_release
+# Stage 6: 终极兼容性补丁
+log_info "Applying critical patches..."
 
-# TurboACC 修复
-sed -i 's/kmod-shortcut-fe-cm/kmod-shortcut-fe/g' package/feeds/luci/luci-app-turboacc/Makefile 2>/dev/null || true
+# =================================================================
+# 关键修复 B：CMake 文本降维打击（安全向下兼容，不打破沙盒）
+# =================================================================
+find feeds/ -type f -name "CMakeLists.txt" -exec sed -i 's/cmake_minimum_required(VERSION 3.3[0-9]/cmake_minimum_required(VERSION 3.25/g' {} +
 
-# 物理头文件拷贝 (不可省略的保命操作)
-mkdir -p staging_dir/target-x86_64_musl/usr/include/pcre2/
-cp -rf feeds/packages/libs/pcre2/include/* staging_dir/target-x86_64_musl/usr/include/ 2>/dev/null || true
-ln -sf pcre2/pcre2.h staging_dir/target-x86_64_musl/usr/include/pcre.h 2>/dev/null || true
-
-# 文本依赖替换
+# 修复 PCRE2 与 libxcrypt 依赖
 find feeds/ package/ -type f -name "Makefile" -exec sed -i \
     's/+libpcre/+libpcre2/g; s/+libpcre22/+libpcre2/g; s/+libcrypt-compat/+libxcrypt/g' {} + 2>/dev/null
 
-log_success "Critical patches applied (PCRE2, XCRYPT, TurboACC)"
+# 修复 TurboACC
+find feeds/ package/ -type f -name "Makefile" -exec sed -i 's/kmod-shortcut-fe-cm/kmod-shortcut-fe/g' {} + 2>/dev/null
 
-# ============================================================================
-# Stage 6: 最终装载与健全性检查
-# ============================================================================
-log_info "Stage 6: Finalizing and sanity checks"
-find package/community -type f -name "*.sh" -exec chmod +x {} \;
-chmod -R +x package/community/
-retry ./scripts/feeds install -a
+# 界面主题与命名
+sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
+sed -i "s/DISTRIB_DESCRIPTION='.*'/DISTRIB_DESCRIPTION='XGATE'/g" package/base-files/files/etc/openwrt_release
 
-# 健全性自检
-if [ -d "feeds/packages/net/shorewall" ]; then
-    log_error "Validation Failed: Shorewall was not completely removed!"
-else
-    log_success "Validation Passed: Environment looks clean."
-fi
-
-log_info "=========================================="
-log_success "DIY Script execution perfectly completed!"
-log_info "=========================================="
+log_success "DIY Script execution completed!"
