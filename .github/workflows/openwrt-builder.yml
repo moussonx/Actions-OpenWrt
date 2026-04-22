@@ -36,10 +36,10 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
+    # 优化 1：升级 Checkout 到 v4，消除 Node 20 警告
     - name: Checkout
-      uses: actions/checkout@main
+      uses: actions/checkout@v4
 
-    # 【核心优化】：释放 GitHub Actions 磁盘空间 (为庞大的 x86 固件腾出空间)
     - name: Free Disk Space (Ubuntu)
       uses: jlumbroso/free-disk-space@main
       with:
@@ -123,8 +123,9 @@ jobs:
       if: (!cancelled())
       run: df -hT
 
+    # 优化 2：升级 Artifact 上传到 v4
     - name: Upload bin directory
-      uses: actions/upload-artifact@main
+      uses: actions/upload-artifact@v4
       if: steps.compile.outputs.status == 'success' && env.UPLOAD_BIN_DIR == 'true'
       with:
         name: OpenWrt_bin${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
@@ -139,8 +140,9 @@ jobs:
         echo "FIRMWARE=$PWD" >> $GITHUB_ENV
         echo "status=success" >> $GITHUB_OUTPUT
 
+    # 优化 3：升级 Artifact 上传到 v4
     - name: Upload firmware directory
-      uses: actions/upload-artifact@main
+      uses: actions/upload-artifact@v4
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
         name: OpenWrt_firmware${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
@@ -154,8 +156,9 @@ jobs:
         touch release.txt
         echo "status=success" >> $GITHUB_OUTPUT
 
+    # 优化 4：升级 Release 发布插件到 v2
     - name: Upload firmware to release
-      uses: softprops/action-gh-release@master
+      uses: softprops/action-gh-release@v2
       if: steps.tag.outputs.status == 'success' && !cancelled()
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -164,14 +167,15 @@ jobs:
         body_path: release.txt
         files: ${{ env.FIRMWARE }}/*
 
+    # 优化 5：升级清理脚本插件以避免运行报错
     - name: Delete workflow runs
-      uses: Mattraks/delete-workflow-runs@main
+      uses: Mattraks/delete-workflow-runs@v2
       with:
         retain_days: 1
         keep_minimum_runs: 3
 
     - name: Remove old Releases
-      uses: dev-drprasad/delete-older-releases@master
+      uses: dev-drprasad/delete-older-releases@v0.3.3
       if: env.UPLOAD_RELEASE == 'true' && !cancelled()
       with:
         keep_latest: 3
