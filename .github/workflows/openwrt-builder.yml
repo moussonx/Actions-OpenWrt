@@ -97,6 +97,12 @@ jobs:
       run: |
         cd openwrt
         echo -e "$(nproc) thread compile"
+        
+        # =================================================================
+        # 核心修复：注入强制安全放行变量，绕过 GNU tar 的特权级环境误判
+        # =================================================================
+        export FORCE_UNSAFE_CONFIGURE=1
+        
         make -j$(nproc) || make -j1 || make -j1 V=s
         echo "status=success" >> $GITHUB_OUTPUT
         echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
