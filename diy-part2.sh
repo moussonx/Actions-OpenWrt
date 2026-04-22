@@ -21,8 +21,16 @@ rm -rf feeds/packages/net/nginx-util
 ./scripts/feeds clean
 ./scripts/feeds update -a && ./scripts/feeds install -a
 
-# 3. 核心补丁：硬核对齐 pcre2 环境 (修复 #44 日志中的编译预警)
-sed -i 's/DEPENDS:=+libpcre/DEPENDS:=+libpcre2/g' feeds/packages/net/aircrack-ng/Makefile 2>/dev/null
+# 3. 核心补丁：硬核对齐 pcre2 环境 (修复所有老旧插件的 libpcre 报错)
+# 全局替换 feeds 目录下所有 Makefile 中的 libpcre 为 libpcre2
+find feeds/ -type f -name "Makefile" -exec sed -i 's/+libpcre/+libpcre2/g; s/+libpcre22/+libpcre2/g' {} + 2>/dev/null
+
+# (注意：下面这几行你原本就写好的 mkdir、cp、ln 和 chmod 保持原样不动)
+mkdir -p staging_dir/target-x86_64_musl/usr/include/pcre2/
+cp -rf feeds/packages/libs/pcre2/include/* staging_dir/target-x86_64_musl/usr/include/ 2>/dev/null
+cp -rf feeds/packages/libs/pcre2/include/* staging_dir/target-x86_64_musl/usr/include/pcre2/ 2>/dev/null
+ln -sf pcre2/pcre2.h staging_dir/target-x86_64_musl/usr/include/pcre.h 2>/dev/null
+chmod -R 755 staging_dir/target-x86_64_musl/usr/include/pcre* 2>/dev/null
 mkdir -p staging_dir/target-x86_64_musl/usr/include/pcre2/
 cp -rf feeds/packages/libs/pcre2/include/* staging_dir/target-x86_64_musl/usr/include/ 2>/dev/null
 cp -rf feeds/packages/libs/pcre2/include/* staging_dir/target-x86_64_musl/usr/include/pcre2/ 2>/dev/null
@@ -35,8 +43,9 @@ rm -rf feeds/packages/lang/golang
 git clone --depth 1 https://github.com/sbwml/packages_lang_golang -b 25.x feeds/packages/lang/golang
 
 # 5. AdGuardHome 精准降级 (避开 Go 1.26 强制要求)
-rm -rf feeds/packages/net/adguardhome
-git clone --depth 1 -b v0.107.52 https://github.com/AdguardTeam/AdGuardHome.git feeds/packages/net/adguardhome
+# 直接修改官方 Makefile 降级，保留 OpenWrt 编译框架
+sed -i 's/PKG_VERSION:=.*/PKG_VERSION:=0.107.52/g' feeds/packages/net/adguardhome/Makefile
+sed -i 's/PKG_HASH:=.*/PKG_HASH:=skip/g' feeds/packages/net/adguardhome/Makefile
 
 # 6. 物理注入组件 (PassWall 2 + Cloudflared)
 mkdir -p package/community
