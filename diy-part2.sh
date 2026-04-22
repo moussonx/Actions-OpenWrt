@@ -25,6 +25,8 @@ mkdir -p staging_dir/target-x86_64_musl/usr/include/pcre2/
 cp -rf feeds/packages/libs/pcre2/include/* staging_dir/target-x86_64_musl/usr/include/ 2>/dev/null
 cp -rf feeds/packages/libs/pcre2/include/* staging_dir/target-x86_64_musl/usr/include/pcre2/ 2>/dev/null
 ln -sf pcre2/pcre2.h staging_dir/target-x86_64_musl/usr/include/pcre.h 2>/dev/null
+# 3.1 权限护航：确保交叉编译器能顺利读取补丁头文件
+chmod -R 755 staging_dir/target-x86_64_musl/usr/include/pcre* 2>/dev/null
 
 # 4. 环境升级：解决 CMake 报错与升级 Golang 25.x
 find feeds/luci/ -name "CMakeLists.txt" -exec sed -i 's/cmake_minimum_required(VERSION 3\..*)/cmake_minimum_required(VERSION 3.25)/g' {} \;
@@ -80,7 +82,6 @@ CONFIG_PACKAGE_dnsmasq_full_filter_aaaa=y
 # 科学上网精准锁定 (防止 #44 日志中的核心冲突)
 CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray_Binary=y
 CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray_Plugin=n
-# 显式关闭冗余的 Trojan 支持（Xray 已包含）
 CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Trojan_Plus=n
 CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Trojan_GO=n
 
