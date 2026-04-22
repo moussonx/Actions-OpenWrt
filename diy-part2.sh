@@ -45,19 +45,13 @@ cp -rf feeds/packages/libs/pcre2/include/* staging_dir/target-x86_64_musl/usr/in
 ln -sf pcre2/pcre2.h staging_dir/target-x86_64_musl/usr/include/pcre.h 2>/dev/null
 chmod -R 755 staging_dir/target-x86_64_musl/usr/include/pcre* 2>/dev/null
 
-# 4. 环境升级：解决 CMake 报错与升级 Golang 25.x
+# 4. 环境升级：解决 CMake 报错与升级 Golang 25.x (去重并强刷索引)
 find feeds/luci/ -name "CMakeLists.txt" -exec sed -i 's/cmake_minimum_required(VERSION 3\..*)/cmake_minimum_required(VERSION 3.25)/g' {} \;
 rm -rf feeds/packages/lang/golang
 git clone --depth 1 https://github.com/sbwml/packages_lang_golang -b 25.x feeds/packages/lang/golang
+./scripts/feeds install -p packages -f golang
 
-# 4. 环境升级：解决 CMake 报错与升级 Golang 25.x (修正版)
-find feeds/luci/ -name "CMakeLists.txt" -exec sed -i 's/cmake_minimum_required(VERSION 3\..*)/cmake_minimum_required(VERSION 3.25)/g' {} \;
-rm -rf feeds/packages/lang/golang
-git clone --depth 1 https://github.com/sbwml/packages_lang_golang -b 25.x feeds/packages/lang/golang
-./scripts/feeds install -p packages -f golang  # <--- 新增这行，强制覆盖并刷新 Go 的索引
-
-# 5. AdGuardHome 精准降级 (避开 Go 1.26 强制要求)
-# 直接修改官方 Makefile 降级，保留 OpenWrt 编译框架
+# 5. AdGuardHome 精准降级 (避开新版 Go 强制要求)
 sed -i 's/PKG_VERSION:=.*/PKG_VERSION:=0.107.52/g' feeds/packages/net/adguardhome/Makefile
 sed -i 's/PKG_HASH:=.*/PKG_HASH:=skip/g' feeds/packages/net/adguardhome/Makefile
 
@@ -65,12 +59,13 @@ sed -i 's/PKG_HASH:=.*/PKG_HASH:=skip/g' feeds/packages/net/adguardhome/Makefile
 mkdir -p package/community
 curl -L https://github.com/Openwrt-Passwall/openwrt-passwall2/archive/refs/tags/26.4.20-1.zip -o pw2.zip
 unzip -q pw2.zip && mv openwrt-passwall2-26.4.20-1/luci-app-passwall2 package/community/ && rm -rf pw2.zip openwrt-passwall2-26.4.20-1
+# 修复 Passwall 2 依赖与菜单显示
 sed -i '/tuic-client/d' package/community/luci-app-passwall2/Makefile
+./scripts/feeds install -p community -f luci-app-passwall2
 
+# 7. Cloudflared 注入 (换成更稳的 git clone 方式)
 rm -rf package/community/luci-app-cloudflared
-mkdir -p package/community/luci-app-cloudflared
-curl -Lf https://github.com/sbwml/luci-app-cloudflared/archive/refs/heads/main.tar.gz | tar xz -C package/community/luci-app-cloudflared --strip-components=1
-
+git clone --depth=1 https://github.com/sbwml/luci-app-cloudflared.git package/community/luci-app-cloudflared
 # 7. 其他社区组件拉取
 git clone --depth=1 https://github.com/linkease/istore.git package/community/istore
 git clone --depth=1 https://github.com/gdy666/luci-app-lucky.git package/community/luci-app-lucky
