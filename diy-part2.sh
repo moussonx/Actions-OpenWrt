@@ -62,6 +62,8 @@ CONFIG_PACKAGE_fstrim=y
 CONFIG_PACKAGE_luci-app-turboacc=y
 CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_OFFLOADING=y
 CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_BBR_CCA=y
+CONFIG_PACKAGE_zram-config=y
+CONFIG_PACKAGE_kmod-zram=y
 
 # 存储增强：支持群晖 NFS/Samba 挂载及 SSD 优化
 CONFIG_PACKAGE_kmod-fs-nfs=y
