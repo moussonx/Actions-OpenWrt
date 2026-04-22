@@ -50,6 +50,12 @@ find feeds/luci/ -name "CMakeLists.txt" -exec sed -i 's/cmake_minimum_required(V
 rm -rf feeds/packages/lang/golang
 git clone --depth 1 https://github.com/sbwml/packages_lang_golang -b 25.x feeds/packages/lang/golang
 
+# 4. 环境升级：解决 CMake 报错与升级 Golang 25.x (修正版)
+find feeds/luci/ -name "CMakeLists.txt" -exec sed -i 's/cmake_minimum_required(VERSION 3\..*)/cmake_minimum_required(VERSION 3.25)/g' {} \;
+rm -rf feeds/packages/lang/golang
+git clone --depth 1 https://github.com/sbwml/packages_lang_golang -b 25.x feeds/packages/lang/golang
+./scripts/feeds install -p packages -f golang  # <--- 新增这行，强制覆盖并刷新 Go 的索引
+
 # 5. AdGuardHome 精准降级 (避开 Go 1.26 强制要求)
 # 直接修改官方 Makefile 降级，保留 OpenWrt 编译框架
 sed -i 's/PKG_VERSION:=.*/PKG_VERSION:=0.107.52/g' feeds/packages/net/adguardhome/Makefile
