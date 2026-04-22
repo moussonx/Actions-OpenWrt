@@ -52,7 +52,7 @@ git clone --depth=1 https://github.com/gdy666/luci-app-lucky.git package/communi
 git clone --depth=1 https://github.com/xiaozhuai/luci-app-filebrowser.git package/community/luci-app-filebrowser
 git clone --depth=1 https://github.com/asvow/luci-app-tailscale.git package/community/luci-app-tailscale
 
-# 8. 针对 VMM 环境与日志优化的极致配置 (逻辑收口版)
+# 8. 针对 VMM 环境与日志优化的极致配置 (在 de22dfb 基础上修正拼写并补齐依赖)
 cat >> .config <<EOF
 # 虚拟机驱动与核心加速
 CONFIG_VIRTIO=y
@@ -64,7 +64,7 @@ CONFIG_PACKAGE_luci-app-turboacc=y
 CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_OFFLOADING=y
 CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_BBR_CCA=y
 
-# 存储与内存优化 (解决编译 OOM 关键)
+# 存储与内存优化 (纠正 zram 拼写，解决编译 OOM 关键)
 CONFIG_PACKAGE_kmod-fs-nfs=y
 CONFIG_PACKAGE_kmod-fs-nfs-v4=y
 CONFIG_PACKAGE_kmod-fs-autofs4=y
@@ -77,6 +77,7 @@ CONFIG_PACKAGE_dnsmasq_full_dhcpv6=y
 CONFIG_PACKAGE_dnsmasq_full_filter_aaaa=y
 CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray_Binary=y
 CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray_Plugin=n
+CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Haproxy=y
 CONFIG_PACKAGE_xray-core=n
 CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Trojan_Plus=n
 CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Trojan_GO=n
