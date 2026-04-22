@@ -80,6 +80,7 @@ CONFIG_PACKAGE_dnsmasq_full_dhcpv6=y
 CONFIG_PACKAGE_dnsmasq_full_filter_aaaa=y
 CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray_Binary=y
 CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray_Plugin=n
+CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_V2ray_Geodata=y
 CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Haproxy=y
 CONFIG_PACKAGE_xray-core=n
 CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Trojan_Plus=n
@@ -105,8 +106,6 @@ echo "export PS1='%F{cyan}%n%f@%F{green}%m%f:%F{blue}%~%f$ '" >> package/base-fi
 sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
 sed -i 's/pcollectd/collectd/g' feeds/luci/applications/luci-app-statistics/Makefile 2>/dev/null
 find package/community feeds/luci -type f -path "*/etc/init.d/*" -exec chmod +x {} \;
-# 修复统计插件的依赖冲突
-sed -i 's/pcollectd/collectd/g' feeds/luci/applications/luci-app-statistics/Makefile 2>/dev/null
 
 # 10. 预设定时重启与 XGATE 冠名
 mkdir -p package/base-files/files/etc/crontabs
