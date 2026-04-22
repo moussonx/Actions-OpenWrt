@@ -76,6 +76,8 @@ CONFIG_PACKAGE_kmod-fs-autofs4=y
 CONFIG_PACKAGE_zram-config=y
 CONFIG_PACKAGE_kmod-zram=y
 CONFIG_PACKAGE_zram-swap=y
+# 强制 ZRAM 在编译阶段就介入，防止 #44 任务中的内存抖动
+CONFIG_ZRAM_DEF_COMP_LZO=y
 CONFIG_TARGET_ROOTFS_EXT4FS=y
 # CONFIG_TARGET_ROOTFS_INCLUDE_SWAP is not set
 
