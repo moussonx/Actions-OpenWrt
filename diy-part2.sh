@@ -98,3 +98,14 @@ mkdir -p package/base-files/files/etc/crontabs
 echo "0 4 * * * sleep 5 && touch /etc/banner && reboot" > package/base-files/files/etc/crontabs/root
 sed -i 's/OpenWrt/XGATE/g' package/base-files/files/bin/config_generate
 sed -i "s/DISTRIB_DESCRIPTION='.*'/DISTRIB_DESCRIPTION='XGATE V1 (Built by Actions)'/g" package/base-files/files/etc/openwrt_release
+
+# 11. 精简 x86 虚拟机不需要的无线驱动（洁癖级优化）
+# 取消常见的 Broadcom, Intel, Realtek 无线网卡驱动
+cat >> .config <<EOF
+# CONFIG_PACKAGE_kmod-brcmfmac is not set
+# CONFIG_PACKAGE_kmod-iwlwifi is not set
+# CONFIG_PACKAGE_kmod-rtw88 is not set
+# CONFIG_PACKAGE_kmod-ath9k is not set
+# CONFIG_PACKAGE_kmod-ath10k is not set
+# CONFIG_WIFI_SUPPORT is not set
+EOF
