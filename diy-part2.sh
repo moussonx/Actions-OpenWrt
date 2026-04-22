@@ -21,9 +21,17 @@ rm -rf feeds/packages/net/nginx-util
 ./scripts/feeds clean
 ./scripts/feeds update -a && ./scripts/feeds install -a
 
-# 3. 核心补丁：硬核对齐 pcre2 环境 (修复所有老旧插件的 libpcre 报错)
-# 全局替换 feeds 目录下所有 Makefile 中的 libpcre 为 libpcre2
-find feeds/ -type f -name "Makefile" -exec sed -i 's/+libpcre/+libpcre2/g; s/+libpcre22/+libpcre2/g' {} + 2>/dev/null
+# 3. 核心补丁：硬核对齐 pcre2 与 libxcrypt 环境 (全路径替换，解决 #46 日志警告)
+# 全局替换 feeds 和 package 目录下所有 Makefile 中的旧依赖
+find feeds/ package/ -type f -name "Makefile" -exec sed -i \
+    's/+libpcre/+libpcre2/g; s/+libpcre22/+libpcre2/g; s/+libcrypt-compat/+libxcrypt/g' {} + 2>/dev/null
+
+# 保持你原本的 mkdir, cp, ln, chmod 逻辑不变
+mkdir -p staging_dir/target-x86_64_musl/usr/include/pcre2/
+cp -rf feeds/packages/libs/pcre2/include/* staging_dir/target-x86_64_musl/usr/include/ 2>/dev/null
+cp -rf feeds/packages/libs/pcre2/include/* staging_dir/target-x86_64_musl/usr/include/pcre2/ 2>/dev/null
+ln -sf pcre2/pcre2.h staging_dir/target-x86_64_musl/usr/include/pcre.h 2>/dev/null
+chmod -R 755 staging_dir/target-x86_64_musl/usr/include/pcre* 2>/dev/null
 
 # (注意：下面这几行你原本就写好的 mkdir、cp、ln 和 chmod 保持原样不动)
 mkdir -p staging_dir/target-x86_64_musl/usr/include/pcre2/
@@ -133,3 +141,6 @@ sed -i "s/DISTRIB_DESCRIPTION='.*'/DISTRIB_DESCRIPTION='XGATE V1 (Built by Actio
 # 11. 终极护航：修复二进制文件及脚本权限
 find package/community feeds/packages/net/adguardhome -type f -name "*.sh" -exec chmod +x {} \;
 chmod -R +x package/community/
+
+# 12. 强制刷新 feeds 符号链接，确保所有 sed 修改生效
+./scripts/feeds install -a
