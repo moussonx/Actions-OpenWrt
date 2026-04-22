@@ -38,7 +38,7 @@ git clone --depth=1 https://github.com/ruobin/luci-app-onliner.git package/commu
 
 # 7. 界面定制
 sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
-sed -i "s/DISTRIB_DESCRIPTION='.*'/DISTRIB_DESCRIPTION='XGATE V1-Max (Safe)'/g" package/base-files/files/etc/openwrt_release
+sed -i "s/DISTRIB_DESCRIPTION='.*'/DISTRIB_DESCRIPTION='XGATE'/g" package/base-files/files/etc/openwrt_release
 
 # 8. 终极兼容补丁：修复 libpcre 缺失及依赖断裂
 # 必须放在脚本末尾执行，确保覆盖所有新拉取的组件
