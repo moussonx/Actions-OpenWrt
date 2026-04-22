@@ -17,18 +17,28 @@ rm -rf feeds/luci/applications/luci-app-transmission
 rm -rf feeds/packages/net/aria2
 rm -rf feeds/packages/net/nginx-util
 
-# 【修复 1】彻底删除引起 Kconfig 递归依赖报错的元凶 (解决服务菜单为空的根本原因)
-rm -rf feeds/packages/net/shorewall
-rm -rf feeds/packages/net/shorewall6
-# 【修复 2】删除不需要的电话通信包，解决 tiff/host 依赖缺失报错
-rm -rf feeds/telephony
-
-# 2.1 强力清场：清理 feeds 索引残留
+# 2.1 强力清场：清理 feeds 索引残留，防止 #44 日志中的覆盖警告
 ./scripts/feeds clean
 ./scripts/feeds update -a && ./scripts/feeds install -a
 
-# 3. 核心补丁预备：构建 pcre2 编译环境
-# 【修复 3.1】删除了原版这里重复了三次的冗余代码，保留一次即可
+# 3. 核心补丁：硬核对齐 pcre2 与 libxcrypt 环境 (全路径替换，解决 #46 日志警告)
+# 全局替换 feeds 和 package 目录下所有 Makefile 中的旧依赖
+find feeds/ package/ -type f -name "Makefile" -exec sed -i \
+    's/+libpcre/+libpcre2/g; s/+libpcre22/+libpcre2/g; s/+libcrypt-compat/+libxcrypt/g' {} + 2>/dev/null
+
+# 保持你原本的 mkdir, cp, ln, chmod 逻辑不变
+mkdir -p staging_dir/target-x86_64_musl/usr/include/pcre2/
+cp -rf feeds/packages/libs/pcre2/include/* staging_dir/target-x86_64_musl/usr/include/ 2>/dev/null
+cp -rf feeds/packages/libs/pcre2/include/* staging_dir/target-x86_64_musl/usr/include/pcre2/ 2>/dev/null
+ln -sf pcre2/pcre2.h staging_dir/target-x86_64_musl/usr/include/pcre.h 2>/dev/null
+chmod -R 755 staging_dir/target-x86_64_musl/usr/include/pcre* 2>/dev/null
+
+# (注意：下面这几行你原本就写好的 mkdir、cp、ln 和 chmod 保持原样不动)
+mkdir -p staging_dir/target-x86_64_musl/usr/include/pcre2/
+cp -rf feeds/packages/libs/pcre2/include/* staging_dir/target-x86_64_musl/usr/include/ 2>/dev/null
+cp -rf feeds/packages/libs/pcre2/include/* staging_dir/target-x86_64_musl/usr/include/pcre2/ 2>/dev/null
+ln -sf pcre2/pcre2.h staging_dir/target-x86_64_musl/usr/include/pcre.h 2>/dev/null
+chmod -R 755 staging_dir/target-x86_64_musl/usr/include/pcre* 2>/dev/null
 mkdir -p staging_dir/target-x86_64_musl/usr/include/pcre2/
 cp -rf feeds/packages/libs/pcre2/include/* staging_dir/target-x86_64_musl/usr/include/ 2>/dev/null
 cp -rf feeds/packages/libs/pcre2/include/* staging_dir/target-x86_64_musl/usr/include/pcre2/ 2>/dev/null
@@ -45,7 +55,7 @@ git clone --depth 1 https://github.com/sbwml/packages_lang_golang -b 25.x feeds/
 sed -i 's/PKG_VERSION:=.*/PKG_VERSION:=0.107.52/g' feeds/packages/net/adguardhome/Makefile
 sed -i 's/PKG_HASH:=.*/PKG_HASH:=skip/g' feeds/packages/net/adguardhome/Makefile
 
-# 6. 物理注入组件 (PassWall 2)
+# 6. 物理注入组件 (PassWall 2 + Cloudflared)
 mkdir -p package/community
 curl -L https://github.com/Openwrt-Passwall/openwrt-passwall2/archive/refs/tags/26.4.20-1.zip -o pw2.zip
 unzip -q pw2.zip && mv openwrt-passwall2-26.4.20-1/luci-app-passwall2 package/community/ && rm -rf pw2.zip openwrt-passwall2-26.4.20-1
@@ -55,4 +65,83 @@ sed -i '/tuic-client/d' package/community/luci-app-passwall2/Makefile
 
 # 7. Cloudflared 注入 (换成更稳的 git clone 方式)
 rm -rf package/community/luci-app-cloudflared
-git clone --depth=1
+git clone --depth=1 https://github.com/sbwml/luci-app-cloudflared.git package/community/luci-app-cloudflared
+# 7. 其他社区组件拉取
+git clone --depth=1 https://github.com/linkease/istore.git package/community/istore
+git clone --depth=1 https://github.com/gdy666/luci-app-lucky.git package/community/luci-app-lucky
+git clone --depth=1 https://github.com/xiaozhuai/luci-app-filebrowser.git package/community/luci-app-filebrowser
+git clone --depth=1 https://github.com/asvow/luci-app-tailscale.git package/community/luci-app-tailscale
+
+# 8. 针对 VMM 环境与日志优化的极致配置 (在 de22dfb 基础上修正拼写并补齐依赖)
+cat >> .config <<EOF
+# 虚拟机驱动与核心加速
+CONFIG_VIRTIO=y
+CONFIG_VIRTIO_NET=y
+CONFIG_VIRTIO_BLK=y
+CONFIG_PACKAGE_fstrim=y
+CONFIG_PACKAGE_kmod-lib-crc32c=y
+CONFIG_PACKAGE_luci-app-turboacc=y
+CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_OFFLOADING=y
+CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_BBR_CCA=y
+
+# 存储与内存优化 (解决编译 OOM，彻底封印旧版 Swap 冲突)
+CONFIG_PACKAGE_kmod-fs-nfs=y
+CONFIG_PACKAGE_kmod-fs-nfs-v4=y
+CONFIG_PACKAGE_kmod-fs-autofs4=y
+CONFIG_PACKAGE_zram-config=y
+CONFIG_PACKAGE_kmod-zram=y
+CONFIG_PACKAGE_luci-app-zram=y
+# 强制 ZRAM 在编译阶段就介入，防止 #44 任务中的内存抖动
+CONFIG_KERNEL_ZRAM_DEF_COMP_LZO=y
+CONFIG_TARGET_ROOTFS_EXT4FS=y
+# CONFIG_TARGET_ROOTFS_INCLUDE_SWAP is not set
+
+# 科学上网与日志降噪 (精准锁定核心，防止 #44 冲突)
+CONFIG_PACKAGE_dnsmasq=n
+CONFIG_PACKAGE_dnsmasq-full=y
+CONFIG_PACKAGE_sing-box=y
+CONFIG_PACKAGE_dnsmasq_full_dhcpv6=y
+CONFIG_PACKAGE_dnsmasq_full_filter_aaaa=y
+CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray_Binary=y
+CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray_Plugin=n
+CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_V2ray_Geodata=y
+CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Haproxy=y
+CONFIG_PACKAGE_xray-core=n
+CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Trojan_Plus=n
+CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Trojan_GO=n
+
+# 终端与洁癖级优化 (彻底干掉无线组件)
+CONFIG_PACKAGE_zsh-completion=y
+CONFIG_PACKAGE_zsh-terminfo=y
+CONFIG_PACKAGE_wpad-basic-wolfssl=n
+CONFIG_PACKAGE_kmod-cfg80211=n
+CONFIG_PACKAGE_kmod-mac80211=n
+
+# 固件分区优化
+CONFIG_TARGET_KERNEL_PARTSIZE=64
+CONFIG_TARGET_ROOTFS_PARTSIZE=1024
+CONFIG_NF_CONNTRACK_EVENTS=y
+CONFIG_NF_CONNTRACK_TIMEOUT=y
+EOF
+
+# 9. 终端及定制
+sed -i 's/\/bin\/ash/\/bin\/zsh/g' package/base-files/files/etc/passwd
+echo "export PS1='%F{cyan}%n%f@%F{green}%m%f:%F{blue}%~%f$ '" >> package/base-files/files/etc/profile
+sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
+# 修复统计插件的依赖冲突
+sed -i 's/pcollectd/collectd/g' feeds/luci/applications/luci-app-statistics/Makefile 2>/dev/null
+# 扩大加权范围，确保 adguardhome 和 passwall 的底层脚本也能被执行
+find package/community feeds/luci feeds/packages/net/adguardhome -type f -path "*/etc/init.d/*" -exec chmod +x {} \;
+
+# 10. 预设定时重启与 XGATE 冠名
+mkdir -p package/base-files/files/etc/crontabs
+echo "0 4 * * * sleep 5 && touch /etc/banner && reboot" > package/base-files/files/etc/crontabs/root
+sed -i 's/OpenWrt/XGATE/g' package/base-files/files/bin/config_generate
+sed -i "s/DISTRIB_DESCRIPTION='.*'/DISTRIB_DESCRIPTION='XGATE V1 (Built by Actions)'/g" package/base-files/files/etc/openwrt_release
+
+# 11. 终极护航：修复二进制文件及脚本权限
+find package/community feeds/packages/net/adguardhome -type f -name "*.sh" -exec chmod +x {} \;
+chmod -R +x package/community/
+
+# 12. 强制刷新 feeds 符号链接，确保所有 sed 修改生效
+./scripts/feeds install -a
