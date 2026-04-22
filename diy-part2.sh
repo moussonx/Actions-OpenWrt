@@ -14,6 +14,9 @@ rm -rf feeds/luci/applications/luci-app-transmission
 rm -rf feeds/packages/net/transmission
 rm -rf feeds/packages/net/aria2
 rm -rf feeds/packages/net/nginx-util
+# 2.1 彻底清理 feeds 索引残留，防止 #44 中的 Makefile 覆盖警告
+./scripts/feeds clean
+./scripts/feeds update -a && ./scripts/feeds install -a
 
 # 3. 核心补丁：硬核对齐 pcre2 环境 (修复 #44 日志中的编译预警)
 sed -i 's/DEPENDS:=+libpcre/DEPENDS:=+libpcre2/g' feeds/packages/net/aircrack-ng/Makefile 2>/dev/null
@@ -73,6 +76,10 @@ CONFIG_PACKAGE_xray-core=y
 CONFIG_PACKAGE_sing-box=y
 CONFIG_PACKAGE_dnsmasq_full_dhcpv6=y
 CONFIG_PACKAGE_dnsmasq_full_filter_aaaa=y
+
+# 进一步减少 Xray/Sing-box 的重复编译开销，防止超时
+CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray_Plugin=n
+CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray_Binary=y
 
 # 终端与洁癖级优化 (彻底干掉无线组件)
 CONFIG_PACKAGE_zsh-completion=y
