@@ -59,11 +59,10 @@ CONFIG_VIRTIO=y
 CONFIG_VIRTIO_NET=y
 CONFIG_VIRTIO_BLK=y
 CONFIG_PACKAGE_fstrim=y
+CONFIG_PACKAGE_kmod-lib-crc32c=y
 CONFIG_PACKAGE_luci-app-turboacc=y
 CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_OFFLOADING=y
 CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_BBR_CCA=y
-CONFIG_PACKAGE_zram-config=y
-CONFIG_PACKAGE_kmod-zram=y
 
 # 存储增强：支持群晖 NFS/Samba 挂载及 SSD 优化
 CONFIG_PACKAGE_kmod-fs-nfs=y
@@ -71,13 +70,26 @@ CONFIG_PACKAGE_kmod-fs-nfs-v3=y
 CONFIG_PACKAGE_kmod-fs-nfs-v4=y
 CONFIG_PACKAGE_kmod-fs-autofs4=y
 
-# 科学上网与日志降噪（核心：彻底封印 IPv6 报错日志）
+# 内存优化：开启 ZRAM 压缩（让 DS920+ 运行更从容）
+CONFIG_PACKAGE_zram-config=y
+CONFIG_PACKAGE_kmod-zram=y
+
+# 科学上网与日志降噪（彻底封印 IPv6 报错日志）
 CONFIG_PACKAGE_xray-core=y
 CONFIG_PACKAGE_sing-box=y
 CONFIG_PACKAGE_dnsmasq_full_dhcpv6=y
 CONFIG_PACKAGE_dnsmasq_full_filter_aaaa=y
-CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadowsocks_Rust_Client=n
-CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadowsocks_Rust_Server=n
+
+# 终端体验增强 (Zsh 补全)
+CONFIG_PACKAGE_zsh-completion=y
+CONFIG_PACKAGE_zsh-terminfo=y
+
+# 洁癖级优化：彻底剔除虚拟机不需要的无线组件
+CONFIG_PACKAGE_wpad-basic-wolfssl=n
+CONFIG_PACKAGE_kmod-cfg80211=n
+CONFIG_PACKAGE_kmod-mac80211=n
+# CONFIG_PACKAGE_kmod-brcmfmac is not set
+# CONFIG_PACKAGE_kmod-iwlwifi is not set
 
 # 固件分区优化
 CONFIG_TARGET_KERNEL_PARTSIZE=64
