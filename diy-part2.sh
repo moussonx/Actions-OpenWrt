@@ -52,7 +52,7 @@ git clone --depth=1 https://github.com/gdy666/luci-app-lucky.git package/communi
 git clone --depth=1 https://github.com/xiaozhuai/luci-app-filebrowser.git package/community/luci-app-filebrowser
 git clone --depth=1 https://github.com/asvow/luci-app-tailscale.git package/community/luci-app-tailscale
 
-# 8. 针对 VMM 环境与日志优化的极致配置 (在 9c038cc 基础上增强)
+# 8. 针对 VMM 环境与日志优化的极致配置 (在 96708bc 基础上再增强)
 cat >> .config <<EOF
 # 核心加速与虚拟机驱动
 CONFIG_VIRTIO=y
@@ -69,16 +69,17 @@ CONFIG_PACKAGE_kmod-fs-nfs-v3=y
 CONFIG_PACKAGE_kmod-fs-nfs-v4=y
 CONFIG_PACKAGE_kmod-fs-autofs4=y
 
-# 科学上网核心
+# 内存优化：开启 ZRAM 压缩（让 DS920+ 运行更从容）
+CONFIG_PACKAGE_zram-config=y
+CONFIG_PACKAGE_kmod-zram=y
+
+# 科学上网与日志降噪（核心：彻底封印 IPv6 报错日志）
 CONFIG_PACKAGE_xray-core=y
 CONFIG_PACKAGE_sing-box=y
-CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadowsocks_Rust_Client=n
-CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadowsocks_Rust_Server=n
-CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_tuic_client=n
-
-# 日志降噪：处理 IPv6 导致的日志刷屏
 CONFIG_PACKAGE_dnsmasq_full_dhcpv6=y
 CONFIG_PACKAGE_dnsmasq_full_filter_aaaa=y
+CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadowsocks_Rust_Client=n
+CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadowsocks_Rust_Server=n
 
 # 固件分区优化
 CONFIG_TARGET_KERNEL_PARTSIZE=64
