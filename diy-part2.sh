@@ -21,10 +21,6 @@ rm -rf feeds/packages/net/nginx-util
 ./scripts/feeds clean
 ./scripts/feeds update -a && ./scripts/feeds install -a
 
-# 2.2 物理抹除基础版 dnsmasq 并刷新索引，确保 filter-aaaa 补丁 100% 生效
-rm -rf package/network/services/dnsmasq
-./scripts/feeds install -p base dnsmasq-full
-
 # 3. 核心补丁：硬核对齐 pcre2 环境 (修复 #44 日志中的编译预警)
 sed -i 's/DEPENDS:=+libpcre/DEPENDS:=+libpcre2/g' feeds/packages/net/aircrack-ng/Makefile 2>/dev/null
 mkdir -p staging_dir/target-x86_64_musl/usr/include/pcre2/
@@ -78,7 +74,7 @@ CONFIG_PACKAGE_zram-config=y
 CONFIG_PACKAGE_kmod-zram=y
 CONFIG_PACKAGE_luci-app-zram=y
 # 强制 ZRAM 在编译阶段就介入，防止 #44 任务中的内存抖动
-CONFIG_ZRAM_DEF_COMP_LZO=y
+CONFIG_KERNEL_ZRAM_DEF_COMP_LZO=y
 CONFIG_TARGET_ROOTFS_EXT4FS=y
 # CONFIG_TARGET_ROOTFS_INCLUDE_SWAP is not set
 
