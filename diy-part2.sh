@@ -79,9 +79,11 @@ CONFIG_PACKAGE_sing-box=y
 CONFIG_PACKAGE_dnsmasq_full_dhcpv6=y
 CONFIG_PACKAGE_dnsmasq_full_filter_aaaa=y
 
-# 科学上网精准锁定 (防止 #44 日志中的核心冲突)
+# 科学上网精准锁定 (彻底解决 #44 日志中的核心冲突)
 CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray_Binary=y
 CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray_Plugin=n
+# 既然用了 Xray 核心，就要显式关闭冗余的独立核心，防止编译器打架
+CONFIG_PACKAGE_xray-core=n
 CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Trojan_Plus=n
 CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Trojan_GO=n
 
