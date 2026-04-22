@@ -38,8 +38,8 @@ git clone --depth=1 https://github.com/xiaozhuai/luci-app-filebrowser.git packag
 git clone --depth=1 https://github.com/sbwml/luci-app-cloudflared.git package/community/luci-app-cloudflared
 git clone --depth=1 https://github.com/asvow/luci-app-tailscale.git package/community/luci-app-tailscale
 git clone --depth=1 https://github.com/brvphoenix/luci-app-wrtbwmon.git package/community/luci-app-wrtbwmon
-# 替换为这个目前可用的源
-git clone --depth=1 https://github.com/Aisunstar/luci-app-onliner.git package/community/luci-app-onliner
+# 替换为当前稳定维护的 Onliner 仓库
+git clone --depth=1 https://github.com/rufengsuixing/luci-app-onliner.git package/community/luci-app-onliner
 
 # 7. 界面定制与命名 (极简 XGATE 版)
 sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
