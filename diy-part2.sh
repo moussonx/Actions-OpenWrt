@@ -104,6 +104,7 @@ EOF
 sed -i 's/\/bin\/ash/\/bin\/zsh/g' package/base-files/files/etc/passwd
 echo "export PS1='%F{cyan}%n%f@%F{green}%m%f:%F{blue}%~%f$ '" >> package/base-files/files/etc/profile
 sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
+# 修复统计插件的依赖冲突
 sed -i 's/pcollectd/collectd/g' feeds/luci/applications/luci-app-statistics/Makefile 2>/dev/null
 find package/community feeds/luci -type f -path "*/etc/init.d/*" -exec chmod +x {} \;
 
