@@ -11,6 +11,7 @@ rm -rf feeds/luci/applications/luci-app-cloudflared
 rm -rf feeds/packages/net/haproxy
 rm -rf feeds/packages/net/haproxy-rust
 rm -rf feeds/packages/net/geoview
+rm -rf feeds/luci/applications/luci-app-geoview
 rm -rf feeds/packages/net/transmission
 rm -rf feeds/luci/applications/luci-app-transmission
 rm -rf feeds/packages/net/aria2
@@ -22,7 +23,7 @@ rm -rf feeds/packages/net/nginx-util
 
 # 2.2 物理抹除基础版 dnsmasq 并刷新索引，确保 filter-aaaa 补丁 100% 生效
 rm -rf package/network/services/dnsmasq
-./scripts/feeds install -p base dnsmasq
+./scripts/feeds install -p base dnsmasq-full
 
 # 3. 核心补丁：硬核对齐 pcre2 环境 (修复 #44 日志中的编译预警)
 sed -i 's/DEPENDS:=+libpcre/DEPENDS:=+libpcre2/g' feeds/packages/net/aircrack-ng/Makefile 2>/dev/null
