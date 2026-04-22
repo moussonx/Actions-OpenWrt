@@ -50,6 +50,7 @@ jobs:
         docker-images: true
         swap-storage: true
 
+    # 采用你提供的显式依赖列表，杜绝外部链接失效风险
     - name: Initialization environment
       env:
         DEBIAN_FRONTEND: noninteractive
@@ -70,7 +71,7 @@ jobs:
         git clone $REPO_URL -b $REPO_BRANCH openwrt
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
 
-    # 【新增：设置 ccache 缓存机制】
+    # 采用你提供的智能 Cache 键值，精准命中编译缓存
     - name: Cache ccache
       uses: actions/cache@v4
       with:
@@ -99,7 +100,6 @@ jobs:
         chmod +x $DIY_P2_SH
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P2_SH
-        # 强制开启 ccache 配置
         echo "CONFIG_CCACHE=y" >> .config
 
     - name: SSH connection to Actions
@@ -180,11 +180,13 @@ jobs:
         retain_days: 1
         keep_minimum_runs: 3
 
+    # 采用 Github 原生 API，彻底告别过时插件引发的 Node.js 弃用黄字警告
     - name: Remove old Releases
-      uses: dev-drprasad/delete-older-releases@v0.3.3
       if: env.UPLOAD_RELEASE == 'true' && !cancelled()
-      with:
-        keep_latest: 3
-        delete_tags: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        TAGS=$(gh api repos/${{ github.repository }}/releases | jq -r '.[3:][].tag_name')
+        for tag in $TAGS; do
+          gh release delete "$tag" -y --cleanup-tag || true
+        done
