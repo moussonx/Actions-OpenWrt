@@ -15,17 +15,13 @@ rm -rf feeds/packages/net/transmission
 rm -rf feeds/packages/net/aria2
 rm -rf feeds/packages/net/nginx-util
 
-# 3. 核心补丁：修复 libpcre 依赖并补齐底层库
+# 3. 核心补丁：硬核对齐 pcre2 环境，消灭 aircrack-ng 的编译幻觉
 sed -i 's/DEPENDS:=+libpcre/DEPENDS:=+libpcre2/g' feeds/packages/net/aircrack-ng/Makefile 2>/dev/null
-git clone --depth=1 https://github.com/openwrt/packages.git ./temp_packages
-cp -r ./temp_packages/libs/pcre package/libs/ 2>/dev/null
-cp -r ./temp_packages/libs/pcre2 package/libs/ 2>/dev/null
-rm -rf ./temp_packages
-# 增强补丁：确保头文件精准对齐，消灭 aircrack-ng 等插件的编译幻觉
-if [ -d "package/libs/pcre2/include" ]; then
-    mkdir -p staging_dir/target-x86_64_musl/usr/include/
-    cp -rf package/libs/pcre2/include/* staging_dir/target-x86_64_musl/usr/include/ 2>/dev/null
-fi
+# 强制创建交叉编译器的搜索路径
+mkdir -p staging_dir/target-x86_64_musl/usr/include/pcre2/
+# 直接从 feeds 目录拷贝头文件，无需重复 git clone
+cp -rf feeds/packages/libs/pcre2/include/* staging_dir/target-x86_64_musl/usr/include/ 2>/dev/null
+cp -rf feeds/packages/libs/pcre2/include/* staging_dir/target-x86_64_musl/usr/include/pcre2/ 2>/dev/null
 
 # 4. 环境升级：解决 CMake 报错与升级 Golang 25.x
 find feeds/luci/ -name "CMakeLists.txt" -exec sed -i 's/cmake_minimum_required(VERSION 3\..*)/cmake_minimum_required(VERSION 3.25)/g' {} \;
