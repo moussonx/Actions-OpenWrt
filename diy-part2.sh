@@ -113,7 +113,8 @@ echo "export PS1='%F{cyan}%n%f@%F{green}%m%f:%F{blue}%~%f$ '" >> package/base-fi
 sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
 # 修复统计插件的依赖冲突
 sed -i 's/pcollectd/collectd/g' feeds/luci/applications/luci-app-statistics/Makefile 2>/dev/null
-find package/community feeds/luci/applications/luci-app-statistics -type f -path "*/etc/init.d/*" -exec chmod +x {} \;
+# 扩大加权范围，确保 adguardhome 和 passwall 的底层脚本也能被执行
+find package/community feeds/luci feeds/packages/net/adguardhome -type f -path "*/etc/init.d/*" -exec chmod +x {} \;
 
 # 10. 预设定时重启与 XGATE 冠名
 mkdir -p package/base-files/files/etc/crontabs
