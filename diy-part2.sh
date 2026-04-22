@@ -74,7 +74,6 @@ CONFIG_PACKAGE_zram-config=y
 CONFIG_PACKAGE_kmod-zram=y
 
 # 科学上网与日志降噪
-CONFIG_PACKAGE_xray-core=y
 CONFIG_PACKAGE_sing-box=y
 CONFIG_PACKAGE_dnsmasq_full_dhcpv6=y
 CONFIG_PACKAGE_dnsmasq_full_filter_aaaa=y
