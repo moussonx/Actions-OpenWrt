@@ -19,8 +19,9 @@ rm -rf feeds/packages/net/nginx-util
 ./scripts/feeds clean
 ./scripts/feeds update -a && ./scripts/feeds install -a
 
-# 2.2 物理抹除基础版 dnsmasq，确保 filter-aaaa 补丁 100% 生效
+# 2.2 物理抹除基础版 dnsmasq 并刷新索引，确保 filter-aaaa 补丁 100% 生效
 rm -rf package/network/services/dnsmasq
+./scripts/feeds install -p base dnsmasq
 
 # 3. 核心补丁：硬核对齐 pcre2 环境 (修复 #44 日志中的编译预警)
 sed -i 's/DEPENDS:=+libpcre/DEPENDS:=+libpcre2/g' feeds/packages/net/aircrack-ng/Makefile 2>/dev/null
@@ -67,12 +68,14 @@ CONFIG_PACKAGE_luci-app-turboacc=y
 CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_OFFLOADING=y
 CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_BBR_CCA=y
 
-# 存储与内存优化 (纠正 zram 拼写，解决编译 OOM 关键)
+# 存储与内存优化 (解决编译 OOM，彻底封印旧版 Swap 冲突)
 CONFIG_PACKAGE_kmod-fs-nfs=y
 CONFIG_PACKAGE_kmod-fs-nfs-v4=y
 CONFIG_PACKAGE_kmod-fs-autofs4=y
 CONFIG_PACKAGE_zram-config=y
 CONFIG_PACKAGE_kmod-zram=y
+CONFIG_TARGET_ROOTFS_EXT4FS=y
+# CONFIG_TARGET_ROOTFS_INCLUDE_SWAP is not set
 
 # 科学上网与日志降噪 (精准锁定核心，防止 #44 冲突)
 CONFIG_PACKAGE_sing-box=y
