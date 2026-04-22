@@ -15,20 +15,20 @@ rm -rf feeds/packages/net/transmission
 rm -rf feeds/packages/net/aria2
 rm -rf feeds/packages/net/nginx-util
 
-# 3. 核心补丁：硬核对齐 pcre2 环境，消灭 aircrack-ng 的编译幻觉
+# 3. 核心补丁：硬核对齐 pcre2 环境 (修复 #44 日志中的编译预警)
 sed -i 's/DEPENDS:=+libpcre/DEPENDS:=+libpcre2/g' feeds/packages/net/aircrack-ng/Makefile 2>/dev/null
-# 强制创建交叉编译器的搜索路径
+# 强制创建交叉编译器的搜索路径并对齐头文件
 mkdir -p staging_dir/target-x86_64_musl/usr/include/pcre2/
-# 直接从 feeds 目录拷贝头文件，无需重复 git clone
 cp -rf feeds/packages/libs/pcre2/include/* staging_dir/target-x86_64_musl/usr/include/ 2>/dev/null
 cp -rf feeds/packages/libs/pcre2/include/* staging_dir/target-x86_64_musl/usr/include/pcre2/ 2>/dev/null
+ln -sf pcre2/pcre2.h staging_dir/target-x86_64_musl/usr/include/pcre.h 2>/dev/null
 
 # 4. 环境升级：解决 CMake 报错与升级 Golang 25.x
 find feeds/luci/ -name "CMakeLists.txt" -exec sed -i 's/cmake_minimum_required(VERSION 3\..*)/cmake_minimum_required(VERSION 3.25)/g' {} \;
 rm -rf feeds/packages/lang/golang
 git clone --depth 1 https://github.com/sbwml/packages_lang_golang -b 25.x feeds/packages/lang/golang
 
-# 5. AdGuardHome 精准降级 (解决 Go 版本过低导致的编译失败)
+# 5. AdGuardHome 精准降级 (核心：避开 Go 1.26 强制要求)
 rm -rf feeds/packages/net/adguardhome
 git clone --depth 1 -b v0.107.52 https://github.com/AdguardTeam/AdGuardHome.git feeds/packages/net/adguardhome
 
@@ -48,9 +48,9 @@ git clone --depth=1 https://github.com/gdy666/luci-app-lucky.git package/communi
 git clone --depth=1 https://github.com/xiaozhuai/luci-app-filebrowser.git package/community/luci-app-filebrowser
 git clone --depth=1 https://github.com/asvow/luci-app-tailscale.git package/community/luci-app-tailscale
 
-# 8. 针对 VMM 环境与日志优化的极致配置 (在 96708bc 基础上再增强)
+# 8. 针对 VMM 环境与日志优化的极致配置 (合并优化版)
 cat >> .config <<EOF
-# 核心加速与虚拟机驱动
+# 虚拟机驱动与核心加速
 CONFIG_VIRTIO=y
 CONFIG_VIRTIO_NET=y
 CONFIG_VIRTIO_BLK=y
@@ -60,32 +60,30 @@ CONFIG_PACKAGE_luci-app-turboacc=y
 CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_OFFLOADING=y
 CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_BBR_CCA=y
 
-# 存储增强：支持群晖 NFS/Samba 挂载及 SSD 优化
+# 存储与内存优化 (解决编译 OOM 关键)
 CONFIG_PACKAGE_kmod-fs-nfs=y
 CONFIG_PACKAGE_kmod-fs-nfs-v3=y
 CONFIG_PACKAGE_kmod-fs-nfs-v4=y
 CONFIG_PACKAGE_kmod-fs-autofs4=y
-
-# 内存优化：开启 ZRAM 压缩（让 DS920+ 运行更从容）
 CONFIG_PACKAGE_zram-config=y
 CONFIG_PACKAGE_kmod-zram=y
 
-# 科学上网与日志降噪（彻底封印 IPv6 报错日志）
+# 科学上网与日志降噪
 CONFIG_PACKAGE_xray-core=y
 CONFIG_PACKAGE_sing-box=y
 CONFIG_PACKAGE_dnsmasq_full_dhcpv6=y
 CONFIG_PACKAGE_dnsmasq_full_filter_aaaa=y
 
-# 终端体验增强 (Zsh 补全)
+# 终端与洁癖级优化 (彻底干掉无线组件)
 CONFIG_PACKAGE_zsh-completion=y
 CONFIG_PACKAGE_zsh-terminfo=y
-
-# 洁癖级优化：彻底剔除虚拟机不需要的无线组件
 CONFIG_PACKAGE_wpad-basic-wolfssl=n
 CONFIG_PACKAGE_kmod-cfg80211=n
 CONFIG_PACKAGE_kmod-mac80211=n
 # CONFIG_PACKAGE_kmod-brcmfmac is not set
 # CONFIG_PACKAGE_kmod-iwlwifi is not set
+# CONFIG_PACKAGE_kmod-rtw88 is not set
+# CONFIG_WIFI_SUPPORT is not set
 
 # 固件分区优化
 CONFIG_TARGET_KERNEL_PARTSIZE=64
@@ -106,14 +104,3 @@ mkdir -p package/base-files/files/etc/crontabs
 echo "0 4 * * * sleep 5 && touch /etc/banner && reboot" > package/base-files/files/etc/crontabs/root
 sed -i 's/OpenWrt/XGATE/g' package/base-files/files/bin/config_generate
 sed -i "s/DISTRIB_DESCRIPTION='.*'/DISTRIB_DESCRIPTION='XGATE V1 (Built by Actions)'/g" package/base-files/files/etc/openwrt_release
-
-# 11. 精简 x86 虚拟机不需要的无线驱动（洁癖级优化）
-# 取消常见的 Broadcom, Intel, Realtek 无线网卡驱动
-cat >> .config <<EOF
-# CONFIG_PACKAGE_kmod-brcmfmac is not set
-# CONFIG_PACKAGE_kmod-iwlwifi is not set
-# CONFIG_PACKAGE_kmod-rtw88 is not set
-# CONFIG_PACKAGE_kmod-ath9k is not set
-# CONFIG_PACKAGE_kmod-ath10k is not set
-# CONFIG_WIFI_SUPPORT is not set
-EOF
