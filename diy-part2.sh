@@ -19,6 +19,9 @@ rm -rf feeds/packages/net/nginx-util
 ./scripts/feeds clean
 ./scripts/feeds update -a && ./scripts/feeds install -a
 
+# 2.2 物理抹除基础版 dnsmasq，确保 filter-aaaa 补丁 100% 生效
+rm -rf package/network/services/dnsmasq
+
 # 3. 核心补丁：硬核对齐 pcre2 环境 (修复 #44 日志中的编译预警)
 sed -i 's/DEPENDS:=+libpcre/DEPENDS:=+libpcre2/g' feeds/packages/net/aircrack-ng/Makefile 2>/dev/null
 mkdir -p staging_dir/target-x86_64_musl/usr/include/pcre2/
@@ -102,6 +105,8 @@ echo "export PS1='%F{cyan}%n%f@%F{green}%m%f:%F{blue}%~%f$ '" >> package/base-fi
 sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
 sed -i 's/pcollectd/collectd/g' feeds/luci/applications/luci-app-statistics/Makefile 2>/dev/null
 find package/community feeds/luci -type f -path "*/etc/init.d/*" -exec chmod +x {} \;
+# 修复统计插件的依赖冲突
+sed -i 's/pcollectd/collectd/g' feeds/luci/applications/luci-app-statistics/Makefile 2>/dev/null
 
 # 10. 预设定时重启与 XGATE 冠名
 mkdir -p package/base-files/files/etc/crontabs
