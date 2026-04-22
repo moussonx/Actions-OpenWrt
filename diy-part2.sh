@@ -11,8 +11,8 @@ rm -rf feeds/luci/applications/luci-app-cloudflared
 rm -rf feeds/packages/net/haproxy
 rm -rf feeds/packages/net/haproxy-rust
 rm -rf feeds/packages/net/geoview
-rm -rf feeds/luci/applications/luci-app-transmission
 rm -rf feeds/packages/net/transmission
+rm -rf feeds/luci/applications/luci-app-transmission
 rm -rf feeds/packages/net/aria2
 rm -rf feeds/packages/net/nginx-util
 
@@ -75,7 +75,7 @@ CONFIG_PACKAGE_kmod-fs-nfs-v4=y
 CONFIG_PACKAGE_kmod-fs-autofs4=y
 CONFIG_PACKAGE_zram-config=y
 CONFIG_PACKAGE_kmod-zram=y
-CONFIG_PACKAGE_zram-swap=y
+CONFIG_PACKAGE_luci-app-zram=y
 # 强制 ZRAM 在编译阶段就介入，防止 #44 任务中的内存抖动
 CONFIG_ZRAM_DEF_COMP_LZO=y
 CONFIG_TARGET_ROOTFS_EXT4FS=y
