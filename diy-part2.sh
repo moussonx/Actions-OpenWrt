@@ -69,7 +69,7 @@ CONFIG_PACKAGE_kmod-fs-nfs=y
 CONFIG_PACKAGE_kmod-fs-nfs-v4=y
 CONFIG_PACKAGE_kmod-fs-autofs4=y
 CONFIG_PACKAGE_zram-config=y
-CONFIG_PACKAGE_kmod-ram=y
+CONFIG_PACKAGE_kmod-zram=y
 
 # 科学上网与日志降噪 (精准锁定核心，防止 #44 冲突)
 CONFIG_PACKAGE_sing-box=y
