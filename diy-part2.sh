@@ -77,9 +77,12 @@ CONFIG_PACKAGE_sing-box=y
 CONFIG_PACKAGE_dnsmasq_full_dhcpv6=y
 CONFIG_PACKAGE_dnsmasq_full_filter_aaaa=y
 
-# 进一步减少 Xray/Sing-box 的重复编译开销，防止超时
-CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray_Plugin=n
+# 科学上网精准锁定 (防止 #44 日志中的核心冲突)
 CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray_Binary=y
+CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Xray_Plugin=n
+# 显式关闭冗余的 Trojan 支持（Xray 已包含）
+CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Trojan_Plus=n
+CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Trojan_GO=n
 
 # 终端与洁癖级优化 (彻底干掉无线组件)
 CONFIG_PACKAGE_zsh-completion=y
@@ -111,3 +114,7 @@ mkdir -p package/base-files/files/etc/crontabs
 echo "0 4 * * * sleep 5 && touch /etc/banner && reboot" > package/base-files/files/etc/crontabs/root
 sed -i 's/OpenWrt/XGATE/g' package/base-files/files/bin/config_generate
 sed -i "s/DISTRIB_DESCRIPTION='.*'/DISTRIB_DESCRIPTION='XGATE V1 (Built by Actions)'/g" package/base-files/files/etc/openwrt_release
+
+# 11. 终极护航：强制修复所有二进制文件的执行权限，确保 AGH 等插件在 VMM 运行不报权限错
+find package/community feeds/packages/net/adguardhome -type f -name "*.sh" -exec chmod +x {} \;
+find package/community feeds/packages/net/adguardhome -type f -path "*/scripts/*" -exec chmod +x {} \;
