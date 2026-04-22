@@ -9,6 +9,7 @@ rm -rf feeds/luci/applications/luci-app-filebrowser
 rm -rf feeds/luci/applications/luci-app-lucky
 rm -rf feeds/luci/applications/luci-app-cloudflared
 rm -rf feeds/packages/net/haproxy
+rm -rf feeds/packages/net/haproxy-rust
 rm -rf feeds/packages/net/geoview
 rm -rf feeds/luci/applications/luci-app-transmission
 rm -rf feeds/packages/net/transmission
@@ -74,6 +75,7 @@ CONFIG_PACKAGE_kmod-fs-nfs-v4=y
 CONFIG_PACKAGE_kmod-fs-autofs4=y
 CONFIG_PACKAGE_zram-config=y
 CONFIG_PACKAGE_kmod-zram=y
+CONFIG_PACKAGE_zram-swap=y
 CONFIG_TARGET_ROOTFS_EXT4FS=y
 # CONFIG_TARGET_ROOTFS_INCLUDE_SWAP is not set
 
@@ -109,7 +111,7 @@ echo "export PS1='%F{cyan}%n%f@%F{green}%m%f:%F{blue}%~%f$ '" >> package/base-fi
 sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
 # 修复统计插件的依赖冲突
 sed -i 's/pcollectd/collectd/g' feeds/luci/applications/luci-app-statistics/Makefile 2>/dev/null
-find package/community feeds/luci -type f -path "*/etc/init.d/*" -exec chmod +x {} \;
+find package/community feeds/luci/applications/luci-app-statistics -type f -path "*/etc/init.d/*" -exec chmod +x {} \;
 
 # 10. 预设定时重启与 XGATE 冠名
 mkdir -p package/base-files/files/etc/crontabs
