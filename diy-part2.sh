@@ -79,6 +79,8 @@ CONFIG_TARGET_ROOTFS_EXT4FS=y
 # CONFIG_TARGET_ROOTFS_INCLUDE_SWAP is not set
 
 # 科学上网与日志降噪 (精准锁定核心，防止 #44 冲突)
+CONFIG_PACKAGE_dnsmasq=n
+CONFIG_PACKAGE_dnsmasq-full=y
 CONFIG_PACKAGE_sing-box=y
 CONFIG_PACKAGE_dnsmasq_full_dhcpv6=y
 CONFIG_PACKAGE_dnsmasq_full_filter_aaaa=y
