@@ -35,9 +35,15 @@ rm -rf tmp/info/ tmp/.package_compile
 log_success "Deep cache and index cleaned"
 
 # ============================================================================
-# Stage 2: 彻底移除冲突与冗余包
+# Stage 2: Feeds 核心源更新 (必须第一步执行，获取最新全量代码)
 # ============================================================================
-log_info "Stage 2: Removing conflicting packages & duplicate apps"
+log_info "Stage 2: Updating feeds"
+retry ./scripts/feeds update -a
+
+# ============================================================================
+# Stage 3: 彻底移除冲突与冗余包 (在 update 之后执行，防止被重新拉取)
+# ============================================================================
+log_info "Stage 3: Removing conflicting packages & upgrading Golang"
 
 packages_to_remove=(
     "feeds/packages/net/shorewall*"
@@ -46,25 +52,22 @@ packages_to_remove=(
     "feeds/luci/applications/luci-app-filebrowser"
     "feeds/luci/applications/luci-app-lucky"
     "feeds/luci/applications/luci-app-cloudflared"
+    "feeds/packages/lang/golang" # 一并删除旧版 golang
 )
 
 for pkg in "${packages_to_remove[@]}"; do
     rm -rf $pkg 2>/dev/null
 done
-log_success "Conflicts and duplicates surgically removed"
+log_success "Conflicts and old golang surgically removed"
 
-# ============================================================================
-# Stage 3: Feeds 更新与高级环境准备
-# ============================================================================
-log_info "Stage 3: Updating feeds and upgrading Golang"
-retry ./scripts/feeds update -a
-retry ./scripts/feeds install -a
-
-# 正确的 Golang 升级逻辑 (必须用 sbwml 源)
-rm -rf feeds/packages/lang/golang
+# 拉取最新版 Golang
 retry git clone --depth 1 https://github.com/sbwml/packages_lang_golang -b 25.x feeds/packages/lang/golang
+
+# 清理旧索引并重新挂载所有包
+rm -rf tmp
+retry ./scripts/feeds install -a
 retry ./scripts/feeds install -p packages -f golang
-log_success "Golang upgraded to 1.25.x (OpenWrt compatible)"
+log_success "Feeds installed and Golang upgraded to 1.25.x"
 
 # ============================================================================
 # Stage 4: 拉取社区精选全家桶
