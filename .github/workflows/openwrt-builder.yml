@@ -36,7 +36,6 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-    # 优化 1：升级 Checkout 到 v4，消除 Node 20 警告
     - name: Checkout
       uses: actions/checkout@v4
 
@@ -71,6 +70,15 @@ jobs:
         git clone $REPO_URL -b $REPO_BRANCH openwrt
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
 
+    # 【新增：设置 ccache 缓存机制】
+    - name: Cache ccache
+      uses: actions/cache@v4
+      with:
+        path: openwrt/.ccache
+        key: ${{ runner.os }}-openwrt-ccache-${{ github.run_id }}
+        restore-keys: |
+          ${{ runner.os }}-openwrt-ccache-
+
     - name: Load custom feeds
       run: |
         [ -e $FEEDS_CONF ] && mv $FEEDS_CONF openwrt/feeds.conf.default
@@ -91,6 +99,8 @@ jobs:
         chmod +x $DIY_P2_SH
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P2_SH
+        # 强制开启 ccache 配置
+        echo "CONFIG_CCACHE=y" >> .config
 
     - name: SSH connection to Actions
       uses: P3TERX/ssh2actions@v1.0.0
@@ -123,7 +133,6 @@ jobs:
       if: (!cancelled())
       run: df -hT
 
-    # 优化 2：升级 Artifact 上传到 v4
     - name: Upload bin directory
       uses: actions/upload-artifact@v4
       if: steps.compile.outputs.status == 'success' && env.UPLOAD_BIN_DIR == 'true'
@@ -140,7 +149,6 @@ jobs:
         echo "FIRMWARE=$PWD" >> $GITHUB_ENV
         echo "status=success" >> $GITHUB_OUTPUT
 
-    # 优化 3：升级 Artifact 上传到 v4
     - name: Upload firmware directory
       uses: actions/upload-artifact@v4
       if: steps.organize.outputs.status == 'success' && !cancelled()
@@ -156,7 +164,6 @@ jobs:
         touch release.txt
         echo "status=success" >> $GITHUB_OUTPUT
 
-    # 优化 4：升级 Release 发布插件到 v2
     - name: Upload firmware to release
       uses: softprops/action-gh-release@v2
       if: steps.tag.outputs.status == 'success' && !cancelled()
@@ -167,7 +174,6 @@ jobs:
         body_path: release.txt
         files: ${{ env.FIRMWARE }}/*
 
-    # 优化 5：升级清理脚本插件以避免运行报错
     - name: Delete workflow runs
       uses: Mattraks/delete-workflow-runs@v2
       with:
