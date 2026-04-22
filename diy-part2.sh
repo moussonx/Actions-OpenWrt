@@ -33,6 +33,8 @@ git clone --depth=1 https://github.com/xiaozhuai/luci-app-filebrowser.git packag
 git clone --depth=1 https://github.com/sbwml/luci-app-cloudflared.git package/community/luci-app-cloudflared
 git clone --depth=1 https://github.com/asvow/luci-app-tailscale.git package/community/luci-app-tailscale
 git clone --depth=1 https://github.com/brvphoenix/luci-app-wrtbwmon.git package/community/luci-app-wrtbwmon
+# 【关键补齐】：拉取 Onliner (在线设备查看) 源码
+git clone --depth=1 https://github.com/ruobin/luci-app-onliner.git package/community/luci-app-onliner
 
 # 7. 界面定制
 sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
