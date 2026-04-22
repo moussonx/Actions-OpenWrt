@@ -71,10 +71,6 @@ CONFIG_PACKAGE_kmod-fs-nfs-v3=y
 CONFIG_PACKAGE_kmod-fs-nfs-v4=y
 CONFIG_PACKAGE_kmod-fs-autofs4=y
 
-# 内存优化：开启 ZRAM 压缩（让 DS920+ 运行更从容）
-CONFIG_PACKAGE_zram-config=y
-CONFIG_PACKAGE_kmod-zram=y
-
 # 科学上网与日志降噪（核心：彻底封印 IPv6 报错日志）
 CONFIG_PACKAGE_xray-core=y
 CONFIG_PACKAGE_sing-box=y
