@@ -140,12 +140,11 @@ jobs:
         retain_days: 30
         keep_minimum_runs: 7
 
-    - name: Remove old Releases
-      if: env.UPLOAD_RELEASE == 'true' && !cancelled()
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        TAGS=$(gh api repos/${{ github.repository }}/releases | jq -r '.[3:][].tag_name')
-        for tag in $TAGS; do
-          gh release delete "$tag" -y --cleanup-tag || true
-        done
+    # 已停用：不再自动清理 Release，保留所有历史固件版本
+    # - name: Remove old Releases
+    #   if: env.UPLOAD_RELEASE == 'true' && !cancelled()
+    #   run: |
+    #     TAGS=$(gh api repos/${{ github.repository }}/releases | jq -r '.[3:].tag_name')
+    #     for tag in $TAGS; do
+    #       gh release delete "$tag" -y --cleanup-tag || true
+    #     done
