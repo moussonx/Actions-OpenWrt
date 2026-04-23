@@ -60,7 +60,7 @@ jobs:
         sudo -E apt-get -qq autoremove --purge
         sudo -E apt-get -qq clean
         
-        # 【极客注入】: 强制升级 CMake 到 3.31.0
+        # 【微调插入 1】: 强制升级 CMake 到 3.31.0
         echo "正在升级 CMake 到 3.31.0..."
         wget -qO- https://github.com/Kitware/CMake/releases/download/v3.31.0/cmake-3.31.0-linux-x86_64.tar.gz | sudo tar xz -C /opt
         sudo ln -sf /opt/cmake-3.31.0-linux-x86_64/bin/* /usr/local/bin/
@@ -103,7 +103,7 @@ jobs:
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P2_SH
         
-        # 【XGATE V3 种子融合】：整合 OpenClash + MosDNS
+        # 【XGATE V4 种子融合】：天花板神器集
         cat > .config <<EOF
         CONFIG_TARGET_x86=y
         CONFIG_TARGET_x86_64=y
@@ -111,28 +111,54 @@ jobs:
         CONFIG_TARGET_ROOTFS_PARTSIZE=1024
         # CONFIG_TARGET_ROOTFS_SQUASHFS is not set
 
-        # 核心 Docker 引擎 (已切除存在依赖冲突的 Dockerman UI)
+        # --- 核心 Docker 环境 (Portainer 替代 Dockerman) ---
         CONFIG_PACKAGE_docker=y
         CONFIG_PACKAGE_dockerd=y
+        CONFIG_PACKAGE_luci-app-portainer=y
+        CONFIG_PACKAGE_luci-i18n-portainer-zh-cn=y
 
-        # OpenClash 核心组件与必需依赖
+        # --- OpenClash & MosDNS 黄金组合 ---
         CONFIG_PACKAGE_luci-app-openclash=y
         CONFIG_PACKAGE_luci-i18n-openclash-zh-cn=y
-        CONFIG_PACKAGE_kmod-tun=y
-        CONFIG_PACKAGE_bash=y
-        CONFIG_PACKAGE_curl=y
-        CONFIG_PACKAGE_ipset=y
-
-        # MosDNS 核心与数据增强包
         CONFIG_PACKAGE_luci-app-mosdns=y
         CONFIG_PACKAGE_luci-i18n-mosdns-zh-cn=y
         CONFIG_PACKAGE_mosdns=y
         CONFIG_PACKAGE_v2ray-geoip=y
         CONFIG_PACKAGE_v2ray-geosite=y
 
-        # 核心网络增强 (dnsmasq-full 替换逻辑)
+        # --- 网络底座依赖 (极其关键) ---
+        CONFIG_PACKAGE_kmod-tun=y
+        CONFIG_PACKAGE_bash=y
+        CONFIG_PACKAGE_curl=y
+        CONFIG_PACKAGE_ipset=y
         # CONFIG_PACKAGE_dnsmasq is not set
         CONFIG_PACKAGE_dnsmasq-full=y
+
+        # --- 天花板级神器增补 ---
+        # 1. FileBrowser (私有云)
+        CONFIG_PACKAGE_luci-app-filebrowser=y
+        CONFIG_PACKAGE_luci-i18n-filebrowser-zh-cn=y
+        # 2. Aria2 (下载神器)
+        CONFIG_PACKAGE_luci-app-aria2=y
+        CONFIG_PACKAGE_luci-i18n-aria2-zh-cn=y
+        # 3. UnblockNeteaseMusic (解锁音乐)
+        CONFIG_PACKAGE_luci-app-unblockneteasemusic=y
+        CONFIG_PACKAGE_luci-i18n-unblockneteasemusic-zh-cn=y
+        # 4. Watchcat (断网自动重连守护)
+        CONFIG_PACKAGE_luci-app-watchcat=y
+        CONFIG_PACKAGE_luci-i18n-watchcat-zh-cn=y
+
+        # --- 基础/其他必备工具 ---
+        CONFIG_PACKAGE_luci-app-passwall2=y
+        CONFIG_PACKAGE_luci-i18n-passwall2-zh-cn=y
+        CONFIG_PACKAGE_luci-app-lucky=y
+        CONFIG_PACKAGE_luci-i18n-lucky-zh-cn=y
+        CONFIG_PACKAGE_luci-app-ttyd=y
+        CONFIG_PACKAGE_luci-theme-argon=y
+        CONFIG_PACKAGE_luci-app-turboacc=y
+        CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_SHORTCUT_FE=y
+        CONFIG_PARTED_READLINE=y
+        CONFIG_PCRE2_JIT_ENABLED=y
         
         # Sing-Box 编译增强
         CONFIG_SING_BOX_BUILD_ACME=y
@@ -142,16 +168,6 @@ jobs:
         CONFIG_SING_BOX_BUILD_TAILSCALE=y
         CONFIG_SING_BOX_BUILD_UTLS=y
         CONFIG_SING_BOX_BUILD_WIREGUARD=y
-        
-        # 其他必备工具
-        CONFIG_PACKAGE_luci-app-passwall2=y
-        CONFIG_PACKAGE_luci-i18n-passwall2-zh-cn=y
-        CONFIG_PACKAGE_luci-app-lucky=y
-        CONFIG_PACKAGE_luci-i18n-lucky-zh-cn=y
-        CONFIG_PACKAGE_luci-app-ttyd=y
-        CONFIG_PACKAGE_luci-theme-argon=y
-        CONFIG_PARTED_READLINE=y
-        CONFIG_PCRE2_JIT_ENABLED=y
         EOF
         
         make defconfig
@@ -170,7 +186,7 @@ jobs:
         cd openwrt
         echo -e "$(nproc) thread compile"
         export FORCE_UNSAFE_CONFIGURE=1
-        # 稳健策略：若多线程报错，自动切换单线程 V=s 模式
+        # 稳健编译策略
         make -j$(nproc) || make -j1 V=s
         echo "status=success" >> $GITHUB_OUTPUT
         echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
