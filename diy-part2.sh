@@ -31,47 +31,38 @@ sed -i 's/192.168.1.1/192.168.1.2/g' package/base-files/files/bin/config_generat
 log_success "Modified default gateway IP to 192.168.1.2"
 
 rm -rf tmp .config.old
-rm -rf tmp/info/ tmp/.package_compile
-log_success "Deep cache and index cleaned"
+rm -rf tmp/info/
+# 【微调插入 1】: 在任何操作前提前物理删除，防幽灵索引干扰
+find feeds/ -name "shorewall*" -type d -exec rm -rf {} + 2>/dev/null
 
 # ============================================================================
-# Stage 2: Feeds 核心源更新 (必须第一步执行，获取最新全量代码)
+# Stage 2: 核心源更新
 # ============================================================================
 log_info "Stage 2: Updating feeds"
 retry ./scripts/feeds update -a
 
 # ============================================================================
-# Stage 3: 彻底移除冲突与冗余包 (在 update 之后执行，防止被重新拉取)
+# Stage 3: 彻底移除冲突包
 # ============================================================================
-log_info "Stage 3: Removing conflicting packages & upgrading Golang"
-
-# 【微调 1】使用 find 彻底剿灭带通配符的顽固目录 (解决 Kconfig 递归警告)
+log_info "Stage 3: Removing conflicting packages..."
+# 【微调插入 2】: 二次强制切除冲突源
 find feeds/ -name "shorewall*" -type d -exec rm -rf {} + 2>/dev/null
 find feeds/ -name "baresip*" -type d -exec rm -rf {} + 2>/dev/null
 
-# 常规精确目录删除
-packages_to_remove=(
+packages=(
+    "feeds/packages/net/shorewall*"
     "feeds/telephony"
     "feeds/luci/applications/luci-app-passwall"
     "feeds/luci/applications/luci-app-filebrowser"
     "feeds/luci/applications/luci-app-lucky"
     "feeds/luci/applications/luci-app-cloudflared"
-    "feeds/packages/lang/golang" # 一并删除旧版 golang
+    "feeds/packages/lang/golang"
 )
+for pkg in "${packages[@]}"; do rm -rf $pkg 2>/dev/null; done
 
-for pkg in "${packages_to_remove[@]}"; do
-    rm -rf $pkg 2>/dev/null
-done
-log_success "Conflicts, duplicates, and old golang surgically removed"
-
-# 【微调 2】拉取最新版 Golang (升级为 26.x)
+# 【微调插入 3】: 确保升级 Golang 至最新的 26.x
+log_info "Upgrading Golang to 26.x..."
 retry git clone --depth 1 https://github.com/sbwml/packages_lang_golang -b 26.x feeds/packages/lang/golang
-
-# 清理旧索引并重新挂载所有包
-rm -rf tmp
-retry ./scripts/feeds install -a
-retry ./scripts/feeds install -p packages -f golang
-log_success "Feeds installed and Golang upgraded to 1.26.x"
 
 # ============================================================================
 # Stage 4: 拉取社区精选全家桶
@@ -83,7 +74,6 @@ mkdir -p package/community
 retry curl -L https://github.com/Openwrt-Passwall/openwrt-passwall2/archive/refs/tags/26.4.20-1.zip -o pw2.zip
 unzip -q pw2.zip && mv openwrt-passwall2-26.4.20-1/luci-app-passwall2 package/community/ && rm -rf pw2.zip openwrt-passwall2-26.4.20-1
 
-# 数组化批量拉取其余 Git 插件
 git_plugins=(
     "linkease/istore.git"
     "gdy666/luci-app-lucky.git"
@@ -93,7 +83,6 @@ git_plugins=(
     "brvphoenix/luci-app-wrtbwmon.git"
     "rufengsuixing/luci-app-onliner.git"
 )
-
 for plugin in "${git_plugins[@]}"; do
     repo_name=$(basename -s .git "$plugin")
     retry git clone --depth=1 "https://github.com/$plugin" "package/community/$repo_name"
@@ -111,16 +100,29 @@ sed -i "s/DISTRIB_DESCRIPTION='.*'/DISTRIB_DESCRIPTION='XGATE'/g" package/base-f
 # TurboACC 修复
 sed -i 's/kmod-shortcut-fe-cm/kmod-shortcut-fe/g' package/feeds/luci/luci-app-turboacc/Makefile 2>/dev/null || true
 
-# 【微调 3】CMake 文本降维打击（安全向下兼容，解决 rpcd-mod-luci 报错）
+# CMake 文本降维打击（安全向下兼容，解决 rpcd-mod-luci 报错）
 find feeds/ -type f -name "CMakeLists.txt" -exec sed -i 's/cmake_minimum_required(VERSION 3.3[0-9]/cmake_minimum_required(VERSION 3.25/g' {} + 2>/dev/null
 
 # 文本依赖替换 (PCRE2 / XCRYPT)
 find feeds/ package/ -type f -name "Makefile" -exec sed -i \
     's/+libpcre/+libpcre2/g; s/+libpcre22/+libpcre2/g; s/+libcrypt-compat/+libxcrypt/g' {} + 2>/dev/null
 
-log_success "Critical patches applied (CMake, PCRE2, XCRYPT, TurboACC)"
+# 【微调插入 4】: 针对 Passwall 2 的特殊依赖修复注入
+if [ -d "package/community/luci-app-passwall2" ]; then
+    sed -i 's/DEPENDS:=.*/& +libpcre2 +libxcrypt/g' package/community/luci-app-passwall2/Makefile 2>/dev/null
+fi
+
+log_success "Critical patches applied"
 
 # ============================================================================
 # Stage 6: 最终装载与健全性检查
 # ============================================================================
-log_info "Stage 6: Finalizing and sanity
+log_info "Stage 6: Finalizing and sanity checks"
+find package/community -type f -name "*.sh" -exec chmod +x {} \;
+chmod -R +x package/community/
+
+# 【微调插入 5】: 装载前彻底清洗 tmp，破除空壳魔咒
+rm -rf tmp/
+
+retry ./scripts/feeds install -p packages -f golang
+retry ./scripts/feeds install -a
