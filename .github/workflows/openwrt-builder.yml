@@ -155,7 +155,6 @@ jobs:
         CONFIG_PACKAGE_exfat-mkfs=y
         CONFIG_PACKAGE_geoview=y
         CONFIG_PACKAGE_glib2=y
-        CONFIG_PACKAGE_haproxy is not set
         CONFIG_PACKAGE_ip-full=y
         CONFIG_PACKAGE_ip-tiny=y
         CONFIG_PACKAGE_ip6tables-nft=y
@@ -254,7 +253,6 @@ jobs:
         CONFIG_PACKAGE_luci-app-nlbwmon=y
         CONFIG_PACKAGE_luci-app-nut=y
         CONFIG_PACKAGE_luci-app-passwall2=y
-        CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Haproxy is not set
         CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadowsocks_Rust_Client=y
         CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_SingBox=y
         CONFIG_PACKAGE_luci-app-passwall2_Nftables_Transparent_Proxy=y
