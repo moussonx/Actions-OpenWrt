@@ -30,6 +30,7 @@ env:
   UPLOAD_FIRMWARE: true
   UPLOAD_RELEASE: true
   TZ: Asia/Shanghai
+  DEVICE_NAME: XGATE
 
 jobs:
   build:
@@ -108,6 +109,11 @@ jobs:
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P2_SH
         
+        # 修改固件品牌名称为 XGATE
+        sed -i "s/hostname='ImmortalWrt'/hostname='XGATE'/g" package/base-files/files/bin/config_generate
+        sed -i 's/ImmortalWrt/XGATE/g' include/target.mk
+        sed -i 's/ImmortalWrt/XGATE/g' package/base-files/files/etc/banner
+
         # 【XGATE V5 完美大满贯融合】
         cat > .config <<EOF
         CONFIG_TARGET_x86=y
@@ -130,7 +136,7 @@ jobs:
         CONFIG_PARTED_READLINE=y
         CONFIG_PCRE2_JIT_ENABLED=y
 
-        # --- 核心容器与环境 (Portainer 接管) ---
+        # --- 核心容器与环境 ---
         CONFIG_PACKAGE_containerd=y
         CONFIG_PACKAGE_docker=y
         CONFIG_PACKAGE_dockerd=y
@@ -140,8 +146,6 @@ jobs:
         CONFIG_PACKAGE_luci-i18n-portainer-zh-cn=y
 
         # --- 流量与 DNS 核心引擎 (OpenClash + MosDNS) ---
-        # 移除 passwall 防止透明代理端口冲突
-        # CONFIG_PACKAGE_luci-app-passwall2 is not set
         # CONFIG_PACKAGE_dnsmasq is not set
         CONFIG_PACKAGE_dnsmasq-full=y
         CONFIG_PACKAGE_luci-app-openclash=y
@@ -152,7 +156,7 @@ jobs:
         CONFIG_PACKAGE_v2ray-geoip=y
         CONFIG_PACKAGE_v2ray-geosite=y
 
-        # --- 极客神器集锦 (全量打通) ---
+        # --- 极客神器集锦 (大满贯) ---
         CONFIG_PACKAGE_luci-app-store=y
         CONFIG_PACKAGE_luci-i18n-store-zh-cn=y
         CONFIG_PACKAGE_luci-app-filebrowser=y
@@ -168,8 +172,6 @@ jobs:
         CONFIG_PACKAGE_luci-app-upnp=y
         CONFIG_PACKAGE_luci-i18n-upnp-zh-cn=y
         CONFIG_PACKAGE_miniupnpd-nftables=y
-        CONFIG_PACKAGE_luci-app-vlmcsd=y
-        CONFIG_PACKAGE_luci-i18n-vlmcsd-zh-cn=y
 
         # --- 基础工具包与面板 ---
         CONFIG_PACKAGE_luci-app-diskman=y
@@ -190,6 +192,8 @@ jobs:
         CONFIG_PACKAGE_luci-i18n-nut-zh-cn=y
         CONFIG_PACKAGE_luci-app-sqm=y
         CONFIG_PACKAGE_luci-i18n-sqm-zh-cn=y
+        CONFIG_PACKAGE_luci-app-vlmcsd=y
+        CONFIG_PACKAGE_luci-i18n-vlmcsd-zh-cn=y
         CONFIG_PACKAGE_luci-theme-argon=y
         
         # --- TurboACC 增强 ---
@@ -327,9 +331,14 @@ jobs:
         cd openwrt
         echo -e "$(nproc) thread compile"
         export FORCE_UNSAFE_CONFIGURE=1
-        make -j$(nproc) || make -j1 || make -j1 V=s
+        # 防拥堵策略
+        make -j$(nproc) || make -j1 V=s
         echo "status=success" >> $GITHUB_OUTPUT
         echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
+
+    - name: Check space usage
+      if: (!cancelled())
+      run: df -hT
 
     - name: Organize files
       id: organize
@@ -344,14 +353,14 @@ jobs:
       uses: actions/upload-artifact@v4
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
-        name: OpenWrt_firmware${{ env.DEVICE_NAME }}${env.FILE_DATE}
+        name: OpenWrt_firmware_${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
         path: ${{ env.FIRMWARE }}
 
     - name: Generate release tag
       id: tag
       if: env.UPLOAD_RELEASE == 'true' && !cancelled()
       run: |
-        echo "release_tag=$(date +"%Y.%m.%d-%H%M")" >> $GITHUB_OUTPUT
+        echo "release_tag=${{ env.DEVICE_NAME }}-$(date +"%Y.%m.%d-%H%M")" >> $GITHUB_OUTPUT
         touch release.txt
         echo "status=success" >> $GITHUB_OUTPUT
 
