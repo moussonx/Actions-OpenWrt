@@ -79,14 +79,13 @@ jobs:
         git clone $REPO_URL -b $REPO_BRANCH openwrt
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
 
-    - name: Cache YML
-      uses: actions/cache@v4
+    - name: Restore Cache
+      uses: actions/cache/restore@v4
       with:
         path: openwrt/.ccache
         key: ${{ runner.os }}-openwrt-ccache-${{ github.run_id }}
         restore-keys: |
           ${{ runner.os }}-openwrt-ccache-
-        save-always: true
 
     - name: Load custom feeds
       run: |
@@ -373,6 +372,13 @@ jobs:
         body_path: release.txt
         files: ${{ env.FIRMWARE }}/*
 
+    - name: Save Cache
+      uses: actions/cache/save@v4
+      if: always()
+      with:
+        path: openwrt/.ccache
+        key: ${{ runner.os }}-openwrt-ccache-${{ github.run_id }}
+        
     - name: Delete workflow runs
       uses: Mattraks/delete-workflow-runs@v2
       with:
