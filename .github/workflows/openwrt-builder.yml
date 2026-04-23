@@ -108,7 +108,7 @@ jobs:
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P2_SH
         
-        # 【XGATE 种子融合】: 将终端提炼的 seed.config 一键写入
+        # 【XGATE V2 种子融合】：严格缩进版本
         cat > .config <<EOF
         CONFIG_TARGET_x86=y
         CONFIG_TARGET_x86_64=y
@@ -136,6 +136,8 @@ jobs:
         CONFIG_LIBCURL_TLS_SRP=y
         CONFIG_LIBCURL_UNIX_SOCKETS=y
         CONFIG_PACKAGE_6in4=y
+        CONFIG_PACKAGE_adguardhome=y
+        CONFIG_PACKAGE_bash=y
         CONFIG_PACKAGE_blkid=y
         CONFIG_PACKAGE_btrfs-progs=y
         CONFIG_PACKAGE_ca-certificates=y
@@ -248,7 +250,9 @@ jobs:
         CONFIG_PACKAGE_luci-app-dockerman=y
         CONFIG_PACKAGE_luci-app-lucky=y
         CONFIG_PACKAGE_luci-app-mwan3=y
+        CONFIG_PACKAGE_luci-app-netdata=y
         CONFIG_PACKAGE_luci-app-nlbwmon=y
+        CONFIG_PACKAGE_luci-app-nut=y
         CONFIG_PACKAGE_luci-app-passwall2=y
         CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Haproxy=y
         CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadowsocks_Rust_Client=y
@@ -261,24 +265,32 @@ jobs:
         # CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_OFFLOADING is not set
         CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_SHORTCUT_FE=y
         CONFIG_PACKAGE_luci-app-upnp=y
+        CONFIG_PACKAGE_luci-app-vlmcsd=y
         CONFIG_PACKAGE_luci-i18n-diskman-zh-cn=y
         CONFIG_PACKAGE_luci-i18n-dockerman-zh-cn=y
         CONFIG_PACKAGE_luci-i18n-lucky-zh-cn=y
         CONFIG_PACKAGE_luci-i18n-mwan3-zh-cn=y
+        CONFIG_PACKAGE_luci-i18n-netdata-zh-cn=y
         CONFIG_PACKAGE_luci-i18n-nlbwmon-zh-cn=y
+        CONFIG_PACKAGE_luci-i18n-nut-zh-cn=y
         CONFIG_PACKAGE_luci-i18n-passwall2-zh-cn=y
         CONFIG_PACKAGE_luci-i18n-sqm-zh-cn=y
         CONFIG_PACKAGE_luci-i18n-ttyd-zh-cn=y
         CONFIG_PACKAGE_luci-i18n-turboacc-zh-cn=y
         CONFIG_PACKAGE_luci-i18n-upnp-zh-cn=y
+        CONFIG_PACKAGE_luci-i18n-vlmcsd-zh-cn=y
         CONFIG_PACKAGE_luci-lib-docker=y
         CONFIG_PACKAGE_luci-theme-argon=y
         CONFIG_PACKAGE_lucky=y
         CONFIG_PACKAGE_miniupnpd-nftables=y
         CONFIG_PACKAGE_mount-utils=y
         CONFIG_PACKAGE_mwan3=y
+        CONFIG_PACKAGE_netdata=y
         CONFIG_PACKAGE_nlbwmon=y
+        CONFIG_PACKAGE_openssl-util=y
         CONFIG_PACKAGE_parted=y
+        CONFIG_PACKAGE_protobuf=y
+        CONFIG_PACKAGE_protobuf-lite=y
         CONFIG_PACKAGE_qemu-ga=y
         CONFIG_PACKAGE_resolveip=y
         CONFIG_PACKAGE_runc=y
@@ -297,6 +309,7 @@ jobs:
         CONFIG_PACKAGE_v2ray-geoip=y
         CONFIG_PACKAGE_v2ray-geosite=y
         CONFIG_PACKAGE_virtio-console-helper=y
+        CONFIG_PACKAGE_vlmcsd=y
         CONFIG_PACKAGE_xray-core=y
         CONFIG_PACKAGE_xtables-nft=y
         CONFIG_PACKAGE_zlib=y
@@ -311,24 +324,8 @@ jobs:
         CONFIG_SING_BOX_BUILD_WIREGUARD=y
         CONFIG_TARGET_ROOTFS_PARTSIZE=1024
         # CONFIG_TARGET_ROOTFS_SQUASHFS is not set
-        # CONFIG_PACKAGE_libev is not set
-        # CONFIG_PACKAGE_libmbedtls is not set
-        # CONFIG_PACKAGE_libsodium is not set
-        # CONFIG_PACKAGE_libudns is not set
-        # CONFIG_PACKAGE_luci-app-diskman_INCLUDE_btrfs_progs is not set
-        # CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_ShadowsocksR_Libev_Client is not set
-        # CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadowsocks_Libev_Client is not set
-        # CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Simple_Obfs is not set
-        # CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_V2ray_Plugin is not set
-        # CONFIG_PACKAGE_shadowsocks-libev-ss-local is not set
-        # CONFIG_PACKAGE_shadowsocks-libev-ss-redir is not set
-        # CONFIG_PACKAGE_shadowsocksr-libev-ssr-local is not set
-        # CONFIG_PACKAGE_shadowsocksr-libev-ssr-redir is not set
-        # CONFIG_PACKAGE_simple-obfs-client is not set
-        # CONFIG_PACKAGE_v2ray-plugin is not set
         EOF
         
-        # 将精简的种子扩展为完整的编译配置
         make defconfig
         echo "CONFIG_CCACHE=y" >> .config
 
