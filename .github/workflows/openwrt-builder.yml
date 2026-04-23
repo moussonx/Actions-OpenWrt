@@ -253,6 +253,15 @@ jobs:
         CONFIG_PACKAGE_kmod-r8126=y              # 螃蟹新一代 5G 网卡驱动预留
         CONFIG_PACKAGE_kmod-r8168=y              # 螃蟹经典千兆网卡保底
 
+        # --- 虚拟机 VirtIO 核心性能增强 (Synology VMM 终极加速) ---
+        CONFIG_TARGET_ROOTFS_EXT4FS=y        # 明确启用 EXT4 格式（配合前面的 Squashfs 关闭）
+        CONFIG_TARGET_IMAGES_GZIP=y          # 生成 .img.gz 格式（群晖 VMM 支持直接导入此压缩包，免去手动解压）
+        CONFIG_EFI_IMAGES=y                  # 启用 UEFI 引导支持（群晖 VMM 强烈建议使用 UEFI 启动，速度更快更稳）
+        CONFIG_PACKAGE_kmod-virtio-net=y     # VirtIO 虚拟网卡驱动（万兆线速转发、极低 CPU 占用的核心）
+        CONFIG_PACKAGE_kmod-virtio-blk=y     # VirtIO 虚拟磁盘驱动（提升 IOPS，加快 Docker 容器启动和读写速度）
+        CONFIG_PACKAGE_kmod-virtio-scsi=y    # VirtIO SCSI 驱动（补充支持，提升存储兼容性）
+        CONFIG_PACKAGE_kmod-virtio-balloon=y # VirtIO 内存气球技术（神级插件：允许群晖宿主机动态回收 OpenWrt 未使用的空闲内存）
+
         # --- 底层 Kmod 依赖 ---
         CONFIG_PACKAGE_kmod-br-netfilter=y
         CONFIG_PACKAGE_kmod-crypto-acompress=y
