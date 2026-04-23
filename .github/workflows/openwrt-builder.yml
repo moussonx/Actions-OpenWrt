@@ -78,13 +78,17 @@ jobs:
         git clone $REPO_URL -b $REPO_BRANCH openwrt
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
 
-    - name: Cache ccache
+    - name: Cache YML
       uses: actions/cache@v4
       with:
         path: openwrt/.ccache
-        key: ${{ runner.os }}-openwrt-ccache-${{ hashFiles('**/*.config') }}
+        # 使用动态 Key：每次运行生成一个唯一的哈希标记
+        key: ${{ runner.os }}-openwrt-ccache-${{ github.run_id }}
+        # 使用前缀匹配还原：寻找最近一次的缓存来恢复
         restore-keys: |
           ${{ runner.os }}-openwrt-ccache-
+        # 极客优化：开启无条件保存。即使编译报错中断，也保留进度
+        save-always: true
 
     - name: Load custom feeds
       run: |
