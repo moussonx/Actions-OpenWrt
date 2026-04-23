@@ -312,6 +312,12 @@ jobs:
         CONFIG_PACKAGE_kmod-tun=y
         CONFIG_PACKAGE_kmod-veth=y
         
+        # --- 群晖 VMM 硬件直通与加速补丁 ---
+        CONFIG_PACKAGE_intel-microcode=y         # Intel CPU 微代码（配合 VMM "主机 CPU 直通" 开启 AES-NI 加密加速，OpenClash 性能翻倍）
+        CONFIG_PACKAGE_kmod-usb-core=y           # USB 底层核心驱动
+        CONFIG_PACKAGE_kmod-usb3=y               # USB 3.0 (xHCI) 满血驱动（确保 RTL8156B 跑满 2.5G 带宽，不会降级到 USB 2.0 的 480Mbps）
+        CONFIG_PACKAGE_kmod-usb-net=y            # USB 网卡基础依赖库
+        
         # --- 核心依赖库 ---
         CONFIG_PACKAGE_libatomic=y
         CONFIG_PACKAGE_libattr=y
