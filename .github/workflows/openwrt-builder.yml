@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
     inputs:
       ssh:
-        description: 'SSH connection to Actions'
+        description: 'SSH connection to Actions (true/false)'
         required: false
         default: 'false'
 
@@ -61,12 +61,10 @@ jobs:
         sudo -E apt-get -qq autoremove --purge
         sudo -E apt-get -qq clean
         
-        # 强制升级 CMake 到 3.31.0
         echo "正在升级 CMake 到 3.31.0..."
         wget -qO- https://github.com/Kitware/CMake/releases/download/v3.31.0/cmake-3.31.0-linux-x86_64.tar.gz | sudo tar xz -C /opt
         sudo ln -sf /opt/cmake-3.31.0-linux-x86_64/bin/* /usr/local/bin/
         hash -r
-        cmake --version
         
         sudo timedatectl set-timezone "$TZ"
         sudo mkdir -p /workdir
@@ -75,7 +73,6 @@ jobs:
     - name: Clone source code
       working-directory: /workdir
       run: |
-        df -hT $PWD
         git clone $REPO_URL -b $REPO_BRANCH openwrt
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
 
@@ -89,8 +86,6 @@ jobs:
 
     - name: Load custom feeds
       run: |
-        # 【物理切除】：注释掉下面这行，禁止外部旧源覆盖官方原生源！
-        # [ -e $FEEDS_CONF ] && mv $FEEDS_CONF openwrt/feeds.conf.default
         chmod +x $DIY_P1_SH
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P1_SH
@@ -109,15 +104,11 @@ jobs:
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P2_SH
         
-        # 修改固件品牌名称为 XGATE
         sed -i "s/hostname='ImmortalWrt'/hostname='XGATE'/g" package/base-files/files/bin/config_generate
         sed -i 's/ImmortalWrt/XGATE/g' include/target.mk
         sed -i 's/ImmortalWrt/XGATE/g' package/base-files/files/etc/banner
-
-        # 将 Argon 设为默认主题
         sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
 
-        # 【XGATE V5 完美大满贯融合】
         cat > .config <<EOF
         CONFIG_TARGET_x86=y
         CONFIG_TARGET_x86_64=y
@@ -125,7 +116,6 @@ jobs:
         CONFIG_TARGET_ROOTFS_PARTSIZE=1024
         # CONFIG_TARGET_ROOTFS_SQUASHFS is not set
 
-        # --- 底层核心参数与驱动 ---
         CONFIG_DOCKER_CGROUP_OPTIONS=y
         CONFIG_DOCKER_NET_MACVLAN=y
         CONFIG_DOCKER_STO_EXT4=y
@@ -139,7 +129,6 @@ jobs:
         CONFIG_PARTED_READLINE=y
         CONFIG_PCRE2_JIT_ENABLED=y
 
-        # --- 核心容器与环境 ---
         CONFIG_PACKAGE_containerd=y
         CONFIG_PACKAGE_docker=y
         CONFIG_PACKAGE_dockerd=y
@@ -148,8 +137,6 @@ jobs:
         CONFIG_PACKAGE_luci-app-portainer=y
         CONFIG_PACKAGE_luci-i18n-portainer-zh-cn=y
 
-        # --- 流量与 DNS 核心引擎 (OpenClash + MosDNS) ---
-        # CONFIG_PACKAGE_dnsmasq is not set
         CONFIG_PACKAGE_dnsmasq-full=y
         CONFIG_PACKAGE_luci-app-openclash=y
         CONFIG_PACKAGE_luci-i18n-openclash-zh-cn=y
@@ -159,7 +146,6 @@ jobs:
         CONFIG_PACKAGE_v2ray-geoip=y
         CONFIG_PACKAGE_v2ray-geosite=y
 
-        # --- 极客神器集锦 (大满贯) ---
         CONFIG_PACKAGE_luci-app-store=y
         CONFIG_PACKAGE_luci-i18n-store-zh-cn=y
         CONFIG_PACKAGE_luci-app-filebrowser=y
@@ -172,11 +158,12 @@ jobs:
         CONFIG_PACKAGE_luci-i18n-watchcat-zh-cn=y
         CONFIG_PACKAGE_luci-app-wol=y
         CONFIG_PACKAGE_luci-i18n-wol-zh-cn=y
+        
+        # [修复] 移除会导致冲突的 miniupnpd-nftables，使用标准版
         CONFIG_PACKAGE_luci-app-upnp=y
         CONFIG_PACKAGE_luci-i18n-upnp-zh-cn=y
-        CONFIG_PACKAGE_miniupnpd-nftables=y
+        CONFIG_PACKAGE_miniupnpd=y
 
-        # --- 基础工具包与面板 ---
         CONFIG_PACKAGE_luci-app-diskman=y
         CONFIG_PACKAGE_luci-app-diskman_INCLUDE_lsblk=y
         CONFIG_PACKAGE_luci-i18n-diskman-zh-cn=y
@@ -199,24 +186,16 @@ jobs:
         CONFIG_PACKAGE_luci-i18n-vlmcsd-zh-cn=y
         CONFIG_PACKAGE_luci-theme-argon=y
         
-        # --- TurboACC 增强 ---
         CONFIG_PACKAGE_luci-app-turboacc=y
         CONFIG_PACKAGE_luci-i18n-turboacc-zh-cn=y
         CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_SHORTCUT_FE=y
         
-        # --- 修复 Nginx 编译报错：彻底抛弃 Nginx，强行回退至 uhttpd ---
-        # CONFIG_PACKAGE_nginx is not set
-        # CONFIG_PACKAGE_nginx-ssl is not set
-        # CONFIG_PACKAGE_nginx-util is not set
-        # CONFIG_PACKAGE_luci-nginx is not set
-        # CONFIG_PACKAGE_luci-ssl-nginx is not set
         CONFIG_PACKAGE_uhttpd=y
         CONFIG_PACKAGE_uhttpd-mod-ubus=y
         CONFIG_PACKAGE_luci-app-uhttpd=y
         CONFIG_PACKAGE_luci-light=y
         CONFIG_PACKAGE_luci-ssl=y
 
-        # --- 网络库、Kmod、及其它系统组件 ---
         CONFIG_PACKAGE_bash=y
         CONFIG_PACKAGE_blkid=y
         CONFIG_PACKAGE_btrfs-progs=y
@@ -243,26 +222,29 @@ jobs:
         CONFIG_PACKAGE_virtio-console-helper=y
         CONFIG_PACKAGE_xray-core=y
         
-        # --- 群晖 VMM 与 2.5G/万兆 物理/虚拟网卡全能驱动包 ---
-        CONFIG_PACKAGE_kmod-e1000e=y             # VMM 虚拟机 e1000 虚拟网卡必备
-        CONFIG_PACKAGE_kmod-vmxnet3=y            # 万兆虚拟网卡 vmxnet3 必备（突破千兆内网瓶颈）
-        CONFIG_PACKAGE_kmod-usb-net-rtl8152=y    # RTL8156B USB 2.5G 外接网卡必备（NAS 拓展多网口极其常见）
-        CONFIG_PACKAGE_kmod-igc=y                # Intel i225/i226 2.5G 原生/直通网卡必备
-        CONFIG_PACKAGE_kmod-igb=y                # Intel i210/i211 千兆 原生/直通网卡必备
-        CONFIG_PACKAGE_kmod-r8125=y              # 螃蟹 RTL8125 2.5G 原生/直通网卡必备
-        CONFIG_PACKAGE_kmod-r8126=y              # 螃蟹新一代 5G 网卡驱动预留
-        CONFIG_PACKAGE_kmod-r8168=y              # 螃蟹经典千兆网卡保底
+        # [补充] 微码工具，配合 intel-microcode 实现 VMM CPU 硬件加速直通
+        CONFIG_PACKAGE_intel-microcode=y
+        CONFIG_PACKAGE_iucode-tool=y
 
-        # --- 虚拟机 VirtIO 核心性能增强 (Synology VMM 终极加速) ---
-        CONFIG_TARGET_ROOTFS_EXT4FS=y        # 明确启用 EXT4 格式（配合前面的 Squashfs 关闭）
-        CONFIG_TARGET_IMAGES_GZIP=y          # 生成 .img.gz 格式（群晖 VMM 支持直接导入此压缩包，免去手动解压）
-        CONFIG_EFI_IMAGES=y                  # 启用 UEFI 引导支持（群晖 VMM 强烈建议使用 UEFI 启动，速度更快更稳）
-        CONFIG_PACKAGE_kmod-virtio-net=y     # VirtIO 虚拟网卡驱动（万兆线速转发、极低 CPU 占用的核心）
-        CONFIG_PACKAGE_kmod-virtio-blk=y     # VirtIO 虚拟磁盘驱动（提升 IOPS，加快 Docker 容器启动和读写速度）
-        CONFIG_PACKAGE_kmod-virtio-scsi=y    # VirtIO SCSI 驱动（补充支持，提升存储兼容性）
-        CONFIG_PACKAGE_kmod-virtio-balloon=y # VirtIO 内存气球技术（神级插件：允许群晖宿主机动态回收 OpenWrt 未使用的空闲内存）
+        CONFIG_PACKAGE_kmod-e1000e=y             
+        CONFIG_PACKAGE_kmod-vmxnet3=y            
+        CONFIG_PACKAGE_kmod-usb-net-rtl8152=y    
+        CONFIG_PACKAGE_kmod-igc=y                
+        CONFIG_PACKAGE_kmod-igb=y                
+        CONFIG_PACKAGE_kmod-r8125=y              
+        CONFIG_PACKAGE_kmod-r8126=y              
+        CONFIG_PACKAGE_kmod-r8168=y              
 
-        # --- 底层 Kmod 依赖 ---
+        CONFIG_TARGET_ROOTFS_EXT4FS=y        
+        CONFIG_TARGET_IMAGES_GZIP=y          
+        CONFIG_EFI_IMAGES=y                  
+        CONFIG_PACKAGE_kmod-virtio-net=y     
+        CONFIG_PACKAGE_kmod-virtio-blk=y     
+        CONFIG_PACKAGE_kmod-virtio-scsi=y    
+        CONFIG_PACKAGE_kmod-virtio-balloon=y
+        # [补充] 虚拟机随机数生成器驱动，提升 OpenClash 等加密应用的启动与握手速度
+        CONFIG_PACKAGE_kmod-virtio-rng=y
+
         CONFIG_PACKAGE_kmod-br-netfilter=y
         CONFIG_PACKAGE_kmod-crypto-acompress=y
         CONFIG_PACKAGE_kmod-crypto-blake2b=y
@@ -312,13 +294,6 @@ jobs:
         CONFIG_PACKAGE_kmod-tun=y
         CONFIG_PACKAGE_kmod-veth=y
         
-        # --- 群晖 VMM 硬件直通与加速补丁 ---
-        CONFIG_PACKAGE_intel-microcode=y         # Intel CPU 微代码（配合 VMM "主机 CPU 直通" 开启 AES-NI 加密加速，OpenClash 性能翻倍）
-        CONFIG_PACKAGE_kmod-usb-core=y           # USB 底层核心驱动
-        CONFIG_PACKAGE_kmod-usb3=y               # USB 3.0 (xHCI) 满血驱动（确保 RTL8156B 跑满 2.5G 带宽，不会降级到 USB 2.0 的 480Mbps）
-        CONFIG_PACKAGE_kmod-usb-net=y            # USB 网卡基础依赖库
-        
-        # --- 核心依赖库 ---
         CONFIG_PACKAGE_libatomic=y
         CONFIG_PACKAGE_libattr=y
         CONFIG_PACKAGE_libbpf=y
@@ -349,7 +324,6 @@ jobs:
         CONFIG_PACKAGE_libwebsockets-full=y
         CONFIG_PACKAGE_libxtables=y
 
-        # --- Sing-Box 编译增强 ---
         CONFIG_SING_BOX_BUILD_ACME=y
         CONFIG_SING_BOX_BUILD_CLASH_API=y
         CONFIG_SING_BOX_BUILD_GVISOR=y
@@ -366,8 +340,15 @@ jobs:
       id: package
       run: |
         cd openwrt
-        make download -j8
+        # [优化] 增加下载重试机制，防止因临时网络波动导致编译提前阻断
+        make download -j8 || make download -j1 V=s
         find dl -size -1024c -exec rm -f {} \;
+
+    # [激活] SSH 调试功能：当你在手动触发时勾选 ssh 为 true，且编译失败时，会提供一个 SSH 连接供你排错
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+      if: (failure() || cancelled()) && github.event.inputs.ssh == 'true'
+      timeout-minutes: 60
 
     - name: Compile the firmware
       id: compile
