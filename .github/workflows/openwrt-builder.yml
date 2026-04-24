@@ -71,7 +71,6 @@ jobs:
         git clone $REPO_URL -b $REPO_BRANCH openwrt
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
 
-    # 🟢 [缓存优化] 使用 github.sha 提高精确命中率，避免无限生成新缓存
     - name: Restore ccache
       uses: actions/cache/restore@v4
       with:
@@ -98,7 +97,7 @@ jobs:
         echo "src-git istore https://github.com/linkease/istore;main" >> feeds.conf.default
         git clone --depth=1 https://github.com/zzsj0928/luci-app-pushbot.git package/luci-app-pushbot
         
-        # 🔧 [精准修复]: 删除 pushbot 对不存在包 iputils-arping 的硬依赖
+        # 🔧 [精准修复]: 彻底删除 pushbot 对不存在包 iputils-arping 的硬依赖
         sed -i 's/iputils-arping//g' package/luci-app-pushbot/Makefile
         
         ./scripts/feeds update -a
@@ -339,14 +338,20 @@ jobs:
         make defconfig
         echo "CONFIG_CCACHE=y" >> .config
 
+    # 🟢 [工业级防护] 完善下载重试与快速退出机制
     - name: Download package
       id: package
       run: |
         cd openwrt
         make download -j8 2>&1 | tee download.log
         if grep -qi "failed\|error" download.log; then
-          echo "检测到下载失败，正在使用单线程回退重试..."
-          make download -j1
+          echo "⚠️ 检测到下载失败，开始单线程重试..."
+          rm -f download.log
+          if ! make download -j1 2>&1 | tee download.retry.log; then
+            echo "❌ 致命错误：单线程下载重试依然失败！"
+            cat download.retry.log
+            exit 1
+          fi
         fi
         find dl -size -1024c -exec rm -f {} \;
 
@@ -363,7 +368,7 @@ jobs:
         export FORCE_UNSAFE_CONFIGURE=1
         set -o pipefail
         
-        # 🟢 [智能并发] 自动探测可用内存，若小于 8GB 则保守并发防止 OOM (Github标准Runner为7GB)
+        # 智能并发探测
         MEM_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
         MEM_GB=$((MEM_KB / 1024 / 1024))
         if [ $MEM_GB -lt 8 ]; then
@@ -396,7 +401,7 @@ jobs:
       if: (!cancelled())
       run: df -hT
 
-    # 🟢 [精确实体验证] 必须匹配到完整的 x86_64 img.gz，并且大小必须大于 15MB，否则直接判死刑
+    # 🟢 [防假阳性] 固件实体及体积严格校验，防止空壳
     - name: Organize files
       id: organize
       if: steps.compile.outputs.status == 'success' && env.UPLOAD_FIRMWARE == 'true' && !cancelled()
@@ -404,7 +409,7 @@ jobs:
         cd openwrt/bin/targets/*/*
         rm -rf packages
         
-        # 查找包含 combined 字样的最终合并镜像
+        # 精确查找最终合并的镜像文件
         FIRMWARE=$(ls -1 *combined*efi.img.gz *combined.img.gz *squashfs-combined*.img.gz 2>/dev/null | head -1)
         if [ -z "$FIRMWARE" ]; then
           echo "❌ 致命错误：未能在 targets 目录下找到 x86_64 最终合并固件！"
@@ -448,16 +453,17 @@ jobs:
         body_path: release.txt
         files: ${{ env.FIRMWARE }}/*
 
+    # 🟢 [缓存优生优育] 仅当编译成功出包时，才保留缓存
     - name: Save ccache
       uses: actions/cache/save@v4
-      if: always()
+      if: steps.compile.outputs.status == 'success'
       with:
         path: openwrt/.ccache
         key: ${{ runner.os }}-openwrt-ccache-${{ github.ref_name }}-${{ github.sha }}
         
     - name: Save dl
       uses: actions/cache/save@v4
-      if: always()
+      if: steps.compile.outputs.status == 'success'
       with:
         path: openwrt/dl
         key: ${{ runner.os }}-openwrt-dl-${{ github.ref_name }}-${{ github.sha }}
