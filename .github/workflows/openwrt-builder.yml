@@ -51,6 +51,16 @@ jobs:
         docker-images: true
         swap-storage: false
 
+    # 🚀 [专家级优化]: 强行开辟 8GB Swap 空间，彻底杜绝并发编译导致内存溢出 (OOM)
+    - name: Setup Swap Space
+      run: |
+        sudo fallocate -l 8G /swapfile
+        sudo chmod 600 /swapfile
+        sudo mkswap /swapfile
+        sudo swapon /swapfile
+        echo "✅ 8GB Swap 虚拟内存已启用，内存焦虑解除！"
+        free -h
+
     - name: Initialization environment
       env:
         DEBIAN_FRONTEND: noninteractive
@@ -116,11 +126,11 @@ jobs:
         sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
 
         # 🚀🚀🚀【核心攻坚：换发 Go 引擎与第三方源码修复】🚀🚀🚀
-        # 1. 升级 Go 编译器到最新 23.x 适配版
+        # 1. 升级 Go 编译器到最新 23.x 适配版，为所有新版 Go 插件保驾护航
         rm -rf feeds/packages/lang/golang
         git clone https://github.com/sbwml/packages_lang_golang -b 23.x feeds/packages/lang/golang
 
-        # 2. 修复 MosDNS (删除坏源，换好源)
+        # 2. 修复 MosDNS (删除官方坏源，换 sbwml 最新完美源)
         find ./ -name "mosdns" -type d | xargs rm -rf
         find ./ -name "v2ray-geodata" -type d | xargs rm -rf
         git clone https://github.com/sbwml/luci-app-mosdns -b v5 package/mosdns
@@ -392,6 +402,9 @@ jobs:
       timeout-minutes: 360
       run: |
         cd openwrt
+        # 🚀 [专家级优化]：限制 Go 编译器的内存回收上限，防止 OOM
+        export GOMEMLIMIT="6GiB"
+        export GOGC="50"
         export FORCE_UNSAFE_CONFIGURE=1
         set -o pipefail
         
@@ -399,7 +412,7 @@ jobs:
         MEM_GB=$((MEM_KB / 1024 / 1024))
         if [ $MEM_GB -lt 8 ]; then
           JOBS=2
-          echo "⚠️ 宿主机内存 ${MEM_GB}GB < 8GB，强制使用 -j2 防止内存溢出(OOM)"
+          echo "⚠️ 宿主机物理内存 ${MEM_GB}GB < 8GB，即使有 Swap 也强制使用 -j2 稳妥编译"
         else
           JOBS=$(nproc)
         fi
