@@ -76,7 +76,6 @@ jobs:
         git clone $REPO_URL -b $REPO_BRANCH openwrt
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
 
-    # [缓存优化 1/2] 恢复 C/C++ 编译缓存
     - name: Restore ccache
       uses: actions/cache/restore@v4
       with:
@@ -84,9 +83,7 @@ jobs:
         key: ${{ runner.os }}-openwrt-ccache-${{ github.ref_name }}-${{ github.run_id }}
         restore-keys: |
           ${{ runner.os }}-openwrt-ccache-${{ github.ref_name }}-
-          ${{ runner.os }}-openwrt-ccache-
 
-    # [缓存优化 2/2] 恢复 DL 源码包缓存 (听取 DeepSeek 建议，加速源码下载)
     - name: Restore dl
       uses: actions/cache/restore@v4
       with:
@@ -94,7 +91,6 @@ jobs:
         key: ${{ runner.os }}-openwrt-dl-${{ github.ref_name }}-${{ github.run_id }}
         restore-keys: |
           ${{ runner.os }}-openwrt-dl-${{ github.ref_name }}-
-          ${{ runner.os }}-openwrt-dl-
 
     - name: Load custom feeds
       run: |
@@ -106,8 +102,8 @@ jobs:
         echo "src-git istore https://github.com/linkease/istore;main" >> feeds.conf.default
         git clone --depth=1 https://github.com/zzsj0928/luci-app-pushbot.git package/luci-app-pushbot
         
-        # [核心修复] 抹除 pushbot 对废弃包 iputils-arping 的硬依赖，防止 package/install 打包失败
-        sed -i 's/+iputils-arping//g' package/luci-app-pushbot/Makefile
+        # 🔧 [精准修复]: 彻底删除 pushbot 对不存在包 iputils-arping 的所有依赖声明
+        sed -i 's/iputils-arping//g' package/luci-app-pushbot/Makefile
         
         ./scripts/feeds update -a
         ./scripts/feeds install -a
@@ -130,6 +126,14 @@ jobs:
         CONFIG_TARGET_x86_64_DEVICE_generic=y
         CONFIG_TARGET_ROOTFS_PARTSIZE=1024
         # CONFIG_TARGET_ROOTFS_SQUASHFS is not set
+
+        # --- 深度修复：剥离可能引发编译崩溃的巨型包与断链模块 ---
+        # 剥离完整版 QEMU（极易崩溃且无用），仅保留系统需要的 guest agent
+        # CONFIG_PACKAGE_qemu is not set
+        # 剥离 fullconenat-nft，防止内核依赖 kmod-nft-fullcone 断链引发 Error
+        # CONFIG_PACKAGE_fullconenat-nft is not set
+        # CONFIG_PACKAGE_kmod-nft-fullcone is not set
+        # --------------------------------------------------------
 
         CONFIG_DOCKER_CGROUP_OPTIONS=y
         CONFIG_DOCKER_NET_MACVLAN=y
@@ -368,13 +372,14 @@ jobs:
       run: |
         cd openwrt
         export FORCE_UNSAFE_CONFIGURE=1
+        set -o pipefail
         if ! make -j$(nproc); then
           echo "多线程编译失败，开始单线程生成详细排障日志并尝试恢复..."
           if ! make -j1 V=s 2>&1 | tee build.log; then
             echo "单线程编译也失败了，请前往 Artifacts 下载 build.log 查看详细错误。"
             exit 1
           else
-            echo "单线程编译成功！这表明刚才的多线程编译遇到了竞态条件 (Race Condition)。"
+            echo "单线程编译成功！刚才的多线程报错可能是竞态条件。"
           fi
         fi
         echo "status=success" >> $GITHUB_OUTPUT
@@ -391,12 +396,18 @@ jobs:
       if: (!cancelled())
       run: df -hT
 
+    # 🚀 [防假阳性补丁]: 强行校验是否生成了固件文件实体
     - name: Organize files
       id: organize
       if: steps.compile.outputs.status == 'success' && env.UPLOAD_FIRMWARE == 'true' && !cancelled()
       run: |
         cd openwrt/bin/targets/*/*
         rm -rf packages
+        if ! ls *img* *ext4 *squashfs* *iso* *gz* 2>/dev/null | grep -q .; then
+          echo "❌ 致命错误：编译过程看似成功，但未能在 targets 目录下找到任何固件实体产物！"
+          echo "这通常是因为某些核心插件依赖错误导致整体被跳过打包。"
+          exit 1
+        fi
         echo "FIRMWARE=$PWD" >> $GITHUB_ENV
         echo "status=success" >> $GITHUB_OUTPUT
 
@@ -425,7 +436,6 @@ jobs:
         body_path: release.txt
         files: ${{ env.FIRMWARE }}/*
 
-    # [缓存优化保存 1/2] 保存 C/C++ 编译缓存
     - name: Save ccache
       uses: actions/cache/save@v4
       if: always()
@@ -433,7 +443,6 @@ jobs:
         path: openwrt/.ccache
         key: ${{ runner.os }}-openwrt-ccache-${{ github.ref_name }}-${{ github.run_id }}
         
-    # [缓存优化保存 2/2] 保存 DL 源码包缓存
     - name: Save dl
       uses: actions/cache/save@v4
       if: always()
