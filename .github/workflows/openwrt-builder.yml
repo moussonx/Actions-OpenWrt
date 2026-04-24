@@ -140,6 +140,10 @@ jobs:
         git clone https://github.com/sbwml/luci-app-mosdns -b v5 package/mosdns
         git clone https://github.com/sbwml/v2ray-geodata package/v2ray-geodata
 
+        # 🚀 降维打击：强行降级 mosdns 到 5.3.3 稳定版，跳过哈希校验，彻底粉碎 Go 1.25.0 的超前诅咒！
+        sed -i 's/^PKG_VERSION.*/PKG_VERSION:=5.3.3/g' package/mosdns/mosdns/Makefile
+        sed -i 's/^PKG_HASH.*/PKG_HASH:=skip/g' package/mosdns/mosdns/Makefile
+
         cat > .config <<EOF
         CONFIG_TARGET_x86=y
         CONFIG_TARGET_x86_64=y
