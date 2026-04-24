@@ -76,12 +76,14 @@ jobs:
         git clone $REPO_URL -b $REPO_BRANCH openwrt
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
 
+    # [CI优化] 引入分支名进行缓存隔离，避免跨分支污染
     - name: Restore Cache
       uses: actions/cache/restore@v4
       with:
         path: openwrt/.ccache
-        key: ${{ runner.os }}-openwrt-ccache-${{ github.run_id }}
+        key: ${{ runner.os }}-openwrt-ccache-${{ github.ref_name }}-${{ github.run_id }}
         restore-keys: |
+          ${{ runner.os }}-openwrt-ccache-${{ github.ref_name }}-
           ${{ runner.os }}-openwrt-ccache-
 
     - name: Load custom feeds
@@ -340,18 +342,23 @@ jobs:
       id: package
       run: |
         cd openwrt
-        # [优化] 增加下载重试机制，防止因临时网络波动导致编译提前阻断
-        make download -j8 || make download -j1 V=s
+        # [优化] 使用更干净的重试逻辑，防止过多日志刷屏
+        make download -j8 2>&1 | tee download.log
+        if grep -qi "failed\|error" download.log; then
+          echo "检测到下载失败，正在使用单线程回退重试..."
+          make download -j1
+        fi
         find dl -size -1024c -exec rm -f {} \;
 
-    # [激活] SSH 调试功能：当你在手动触发时勾选 ssh 为 true，且编译失败时，会提供一个 SSH 连接供你排错
     - name: Setup tmate session
       uses: mxschmitt/action-tmate@v3
       if: (failure() || cancelled()) && github.event.inputs.ssh == 'true'
       timeout-minutes: 60
 
+    # [CI优化] 加入超时保护，防止死循环耗尽资源
     - name: Compile the firmware
       id: compile
+      timeout-minutes: 360
       run: |
         cd openwrt
         export FORCE_UNSAFE_CONFIGURE=1
@@ -397,21 +404,25 @@ jobs:
         body_path: release.txt
         files: ${{ env.FIRMWARE }}/*
 
+    # [CI优化] 确保 Cache key 包含分支信息
     - name: Save Cache
       uses: actions/cache/save@v4
       if: always()
       with:
         path: openwrt/.ccache
-        key: ${{ runner.os }}-openwrt-ccache-${{ github.run_id }}
+        key: ${{ runner.os }}-openwrt-ccache-${{ github.ref_name }}-${{ github.run_id }}
         
+    # [CI优化] 清理动作加入容错机制，防止其失败导致整个流水线报红
     - name: Delete workflow runs
       uses: Mattraks/delete-workflow-runs@v2
+      continue-on-error: true
       with:
         retain_days: 30
         keep_minimum_runs: 7
 
     - name: Remove old Releases
       uses: dev-drprasad/delete-older-releases@v0.1.0
+      continue-on-error: true
       with:
         keep_latest: 3
         delete_tags: true
