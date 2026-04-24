@@ -53,14 +53,21 @@ jobs:
 
     - name: Setup Swap Space
       run: |
-        if ! sudo fallocate -l 8G /swapfile 2>/dev/null; then
-          sudo dd if=/dev/zero of=/swapfile bs=1M count=8192 status=progress
+        # 1. 强制关闭系统底层的默认 Swap，解除所有文件锁 (吸收 DeepSeek 的精华)
+        sudo swapoff -a 2>/dev/null || true
+        
+        # 2. 使用高兼容性模式和全新文件名，彻底绕过系统自带 /swapfile 冲突
+        if ! sudo fallocate -l 8G /swapfile-extra 2>/dev/null; then
+          sudo dd if=/dev/zero of=/swapfile-extra bs=1M count=8192 status=progress
         fi
-        sudo chmod 600 /swapfile
-        sudo mkswap /swapfile
-        sudo swapon /swapfile
+        sudo chmod 600 /swapfile-extra
+        sudo mkswap /swapfile-extra
+        sudo swapon /swapfile-extra
+        
+        # 3. 优化内存交换倾向
         sudo sysctl -w vm.swappiness=10
-        echo "✅ 8GB Swap 虚拟内存部署完成，彻底防范 OOM！"
+        echo "✅ 8GB 独立 Swap 部署完成，内存护城河已建立！"
+        free -h
 
     - name: Initialization environment
       env:
