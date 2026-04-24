@@ -110,6 +110,28 @@ jobs:
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P2_SH
         
+        sed -i "s/hostname='ImmortalWrt'/hostname='XGATE'/g" package/base-files/files/bin/config_generate
+        sed -i 's/ImmortalWrt/XGATE/g' include/target.mk
+        sed -i 's/ImmortalWrt/XGATE/g' package/base-files/files/etc/banner
+        sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
+
+        # 🚀🚀🚀【核心攻坚：换发 Go 引擎与第三方源码修复】🚀🚀🚀
+        # 1. 升级 Go 编译器到最新 23.x 适配版
+        rm -rf feeds/packages/lang/golang
+        git clone https://github.com/sbwml/packages_lang_golang -b 23.x feeds/packages/lang/golang
+
+        # 2. 修复 MosDNS (删除坏源，换好源)
+        find ./ -name "mosdns" -type d | xargs rm -rf
+        find ./ -name "v2ray-geodata" -type d | xargs rm -rf
+        git clone https://github.com/sbwml/luci-app-mosdns -b v5 package/mosdns
+        git clone https://github.com/sbwml/v2ray-geodata package/v2ray-geodata
+
+        # 3. 修复 Filebrowser (删除官方带 Bug 的源码，换社区维护版)
+        rm -rf feeds/packages/net/filebrowser
+        rm -rf feeds/luci/applications/luci-app-filebrowser
+        git clone https://github.com/sbwml/luci-app-filebrowser package/luci-app-filebrowser
+        # 🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀
+
         cat > .config <<EOF
         CONFIG_TARGET_x86=y
         CONFIG_TARGET_x86_64=y
@@ -147,14 +169,22 @@ jobs:
         CONFIG_PACKAGE_dnsmasq-full=y
         CONFIG_PACKAGE_luci-app-openclash=y
         CONFIG_PACKAGE_luci-i18n-openclash-zh-cn=y
+        
+        # ✅ MosDNS 满血回归
         CONFIG_PACKAGE_luci-app-mosdns=y
         CONFIG_PACKAGE_luci-i18n-mosdns-zh-cn=y
         CONFIG_PACKAGE_mosdns=y
+        
         CONFIG_PACKAGE_v2ray-geoip=y
         CONFIG_PACKAGE_v2ray-geosite=y
 
         CONFIG_PACKAGE_luci-app-store=y
         CONFIG_PACKAGE_luci-i18n-store-zh-cn=y
+
+        # ✅ Filebrowser 满血回归
+        CONFIG_PACKAGE_luci-app-filebrowser=y
+        CONFIG_PACKAGE_luci-i18n-filebrowser-zh-cn=y
+
         CONFIG_PACKAGE_luci-app-aria2=y
         CONFIG_PACKAGE_luci-i18n-aria2-zh-cn=y
         CONFIG_PACKAGE_luci-app-watchcat=y
@@ -336,7 +366,6 @@ jobs:
         make defconfig
         echo "CONFIG_CCACHE=y" >> .config
 
-    # 🟢 [工业级防护] 完善下载重试与快速退出机制
     - name: Download package
       id: package
       run: |
@@ -366,7 +395,6 @@ jobs:
         export FORCE_UNSAFE_CONFIGURE=1
         set -o pipefail
         
-        # 智能并发探测
         MEM_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
         MEM_GB=$((MEM_KB / 1024 / 1024))
         if [ $MEM_GB -lt 8 ]; then
@@ -399,7 +427,6 @@ jobs:
       if: (!cancelled())
       run: df -hT
 
-    # 🟢 [防假阳性] 固件实体及体积严格校验，防止空壳
     - name: Organize files
       id: organize
       if: steps.compile.outputs.status == 'success' && env.UPLOAD_FIRMWARE == 'true' && !cancelled()
@@ -407,22 +434,20 @@ jobs:
         cd openwrt/bin/targets/*/*
         rm -rf packages
         
-        # 精确查找最终合并的镜像文件
         FIRMWARE=$(ls -1 *combined*efi.img.gz *combined.img.gz *squashfs-combined*.img.gz 2>/dev/null | head -1)
         if [ -z "$FIRMWARE" ]; then
           echo "❌ 致命错误：未能在 targets 目录下找到 x86_64 最终合并固件！"
-          echo "当前目录下的残留文件为："
           ls -lah
           exit 1
         fi
         
         SIZE=$(stat -c%s "$FIRMWARE")
         if [ $SIZE -lt 15000000 ]; then
-          echo "❌ 固件异常小（${SIZE} bytes，小于15MB），编译极不完整！"
+          echo "❌ 固件异常小（${SIZE} bytes），编译极不完整！"
           exit 1
         fi
         
-        echo "✅ 固件完美通过验证: $FIRMWARE ($(numfmt --to=iec $SIZE))"
+        echo "✅ 固件通过验证: $FIRMWARE ($(numfmt --to=iec $SIZE))"
         echo "FIRMWARE=$PWD" >> $GITHUB_ENV
         echo "status=success" >> $GITHUB_OUTPUT
 
@@ -451,7 +476,6 @@ jobs:
         body_path: release.txt
         files: ${{ env.FIRMWARE }}/*
 
-    # 🟢 [缓存优生优育] 仅当编译成功出包时，才保留缓存
     - name: Save ccache
       uses: actions/cache/save@v4
       if: steps.compile.outputs.status == 'success'
