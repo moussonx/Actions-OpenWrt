@@ -402,6 +402,10 @@ jobs:
         unset GOPATH GOROOT GO111MODULE CGO_ENABLED
         export FORCE_UNSAFE_CONFIGURE=1
         
+        # 🚀 听取专家建议：改用 export 将 Go 内存参数注册为全局环境变量，确保被所有子进程绝对继承
+        export GOMEMLIMIT=6GiB
+        export GOGC=50
+        
         MEM_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
         MEM_GB=$((MEM_KB / 1024 / 1024))
         if [ $MEM_GB -lt 8 ]; then
@@ -411,13 +415,14 @@ jobs:
           JOBS=$(nproc)
         fi
         
-        if ! make -j${JOBS} GOMEMLIMIT=6GiB GOGC=50; then
+        # 移除 make 后面的宏变量，直接干干净净地执行
+        if ! make -j${JOBS}; then
           echo "多线程编译失败，开始单线程生成详细排障日志并尝试恢复..."
-          if ! make -j1 V=s GOMEMLIMIT=6GiB GOGC=50 2>&1 | tee build.log; then
+          if ! make -j1 V=s 2>&1 | tee build.log; then
             echo "单线程编译也失败了，请前往 Artifacts 下载 build.log 查看详细错误。"
             exit 1
           else
-            echo "单线程编译成功！刚才的多线程报错可能是竞态条件。"
+            echo "单线程编译成功！"
           fi
         fi
         echo "status=success" >> $GITHUB_OUTPUT
