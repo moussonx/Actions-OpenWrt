@@ -94,6 +94,10 @@ jobs:
         echo "src-git lucky https://github.com/gdy666/luci-app-lucky.git" >> feeds.conf.default
         echo "src-git istore https://github.com/linkease/istore;main" >> feeds.conf.default
         git clone --depth=1 https://github.com/zzsj0928/luci-app-pushbot.git package/luci-app-pushbot
+        
+        # [核心修复] 抹除 pushbot 对废弃包 iputils-arping 的硬依赖，防止 package/install 打包失败
+        sed -i 's/+iputils-arping//g' package/luci-app-pushbot/Makefile
+        
         ./scripts/feeds update -a
         ./scripts/feeds install -a
 
@@ -116,7 +120,6 @@ jobs:
         CONFIG_TARGET_ROOTFS_PARTSIZE=1024
         # CONFIG_TARGET_ROOTFS_SQUASHFS is not set
 
-        # --- 底层核心参数与驱动 (已清除冗余伪依赖) ---
         CONFIG_DOCKER_CGROUP_OPTIONS=y
         CONFIG_DOCKER_NET_MACVLAN=y
         CONFIG_DOCKER_STO_EXT4=y
@@ -348,7 +351,6 @@ jobs:
       if: (failure() || cancelled()) && github.event.inputs.ssh == 'true'
       timeout-minutes: 60
 
-    # [容错+排错终极版] 自动捕获并发错误，无损单核回退并提取详细崩溃日志
     - name: Compile the firmware
       id: compile
       timeout-minutes: 360
@@ -367,7 +369,6 @@ jobs:
         echo "status=success" >> $GITHUB_OUTPUT
         echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
 
-    # [全自动收集] 若编译最终失败，将错误日志一键打包供分析
     - name: Upload Error Log
       uses: actions/upload-artifact@v4
       if: failure()
