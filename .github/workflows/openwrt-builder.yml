@@ -116,16 +116,7 @@ jobs:
         CONFIG_TARGET_ROOTFS_PARTSIZE=1024
         # CONFIG_TARGET_ROOTFS_SQUASHFS is not set
 
-        # --- 底层核心参数与驱动 (包含缺失的地基依赖) ---
-        CONFIG_PACKAGE_lm-sensors=y
-        CONFIG_PACKAGE_libpam=y
-        CONFIG_PACKAGE_luci-app-samba4=y
-        CONFIG_PACKAGE_wsdd2=y
-        CONFIG_PACKAGE_luci-i18n-samba4-zh-cn=y
-        CONFIG_PACKAGE_luci-i18n-base-zh-cn=y
-        CONFIG_PACKAGE_iputils-arping=y
-        CONFIG_PACKAGE_glib2=y
-        CONFIG_PACKAGE_libgpiod=y
+        # --- 底层核心参数与驱动 (已清除冗余伪依赖) ---
         CONFIG_DOCKER_CGROUP_OPTIONS=y
         CONFIG_DOCKER_NET_MACVLAN=y
         CONFIG_DOCKER_STO_EXT4=y
@@ -357,15 +348,32 @@ jobs:
       if: (failure() || cancelled()) && github.event.inputs.ssh == 'true'
       timeout-minutes: 60
 
+    # [容错+排错终极版] 自动捕获并发错误，无损单核回退并提取详细崩溃日志
     - name: Compile the firmware
       id: compile
       timeout-minutes: 360
       run: |
         cd openwrt
         export FORCE_UNSAFE_CONFIGURE=1
-        make -j$(nproc) || make -j1 V=s
+        if ! make -j$(nproc); then
+          echo "多线程编译失败，开始单线程生成详细排障日志并尝试恢复..."
+          if ! make -j1 V=s 2>&1 | tee build.log; then
+            echo "单线程编译也失败了，请前往 Artifacts 下载 build.log 查看详细错误。"
+            exit 1
+          else
+            echo "单线程编译成功！这表明刚才的多线程编译遇到了竞态条件 (Race Condition)。"
+          fi
+        fi
         echo "status=success" >> $GITHUB_OUTPUT
         echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
+
+    # [全自动收集] 若编译最终失败，将错误日志一键打包供分析
+    - name: Upload Error Log
+      uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: OpenWrt_Crash_Log_${{ github.run_id }}
+        path: openwrt/build.log
 
     - name: Check space usage
       if: (!cancelled())
