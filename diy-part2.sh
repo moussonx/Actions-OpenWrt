@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 修改默认 IP
-sed -i 's/192.168.1.1/192.168.1.67/g' package/base-files/files/bin/config_generate
+sed -i 's/192.168.1.1/192.168.1.46/g' package/base-files/files/bin/config_generate
 
 # 修改主机名
 sed -i "s/hostname='ImmortalWrt'/hostname='XGATE'/g" package/base-files/files/bin/config_generate
