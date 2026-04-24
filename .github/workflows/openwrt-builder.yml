@@ -51,14 +51,17 @@ jobs:
         docker-images: true
         swap-storage: false
 
-    # 🚀 [专家级优化]: 强行开辟 8GB Swap 空间，彻底杜绝并发编译导致内存溢出 (OOM)
+    # 🚀 [终极优化]: 高兼容性 Swap 部署 + 内存交换倾向优化
     - name: Setup Swap Space
       run: |
-        sudo fallocate -l 8G /swapfile
+        if ! sudo fallocate -l 8G /swapfile 2>/dev/null; then
+          sudo dd if=/dev/zero of=/swapfile bs=1M count=8192 status=progress
+        fi
         sudo chmod 600 /swapfile
         sudo mkswap /swapfile
         sudo swapon /swapfile
-        echo "✅ 8GB Swap 虚拟内存已启用，内存焦虑解除！"
+        sudo sysctl -w vm.swappiness=10
+        echo "✅ Swap 部署完成，内存焦虑彻底解除："
         free -h
 
     - name: Initialization environment
@@ -81,21 +84,22 @@ jobs:
         git clone $REPO_URL -b $REPO_BRANCH openwrt
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
 
+    # 🚀 [终极优化]: 修复缓存逻辑，监控 YML 和 SH 文件的变化，实现完美命中
     - name: Restore ccache
       uses: actions/cache/restore@v4
       with:
         path: openwrt/.ccache
-        key: ${{ runner.os }}-openwrt-ccache-${{ github.ref_name }}-${{ github.sha }}
+        key: ${{ runner.os }}-openwrt-ccache-${{ hashFiles('**/*.yml', 'diy-part*.sh') }}
         restore-keys: |
-          ${{ runner.os }}-openwrt-ccache-${{ github.ref_name }}-
+          ${{ runner.os }}-openwrt-ccache-
 
     - name: Restore dl
       uses: actions/cache/restore@v4
       with:
         path: openwrt/dl
-        key: ${{ runner.os }}-openwrt-dl-${{ github.ref_name }}-${{ github.sha }}
+        key: ${{ runner.os }}-openwrt-dl-${{ hashFiles('**/*.yml', 'diy-part*.sh') }}
         restore-keys: |
-          ${{ runner.os }}-openwrt-dl-${{ github.ref_name }}-
+          ${{ runner.os }}-openwrt-dl-
 
     - name: Load custom feeds
       run: |
@@ -107,7 +111,7 @@ jobs:
         echo "src-git istore https://github.com/linkease/istore;main" >> feeds.conf.default
         git clone --depth=1 https://github.com/zzsj0928/luci-app-pushbot.git package/luci-app-pushbot
         
-        # 🔧 [精准修复]: 彻底删除 pushbot 对不存在包 iputils-arping 的硬依赖
+        # 🔧 彻底删除 pushbot 对不存在包 iputils-arping 的硬依赖
         sed -i 's/iputils-arping//g' package/luci-app-pushbot/Makefile
         
         ./scripts/feeds update -a
@@ -126,17 +130,14 @@ jobs:
         sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
 
         # 🚀🚀🚀【核心攻坚：换发 Go 引擎与第三方源码修复】🚀🚀🚀
-        # 1. 升级 Go 编译器到最新 23.x 适配版，为所有新版 Go 插件保驾护航
         rm -rf feeds/packages/lang/golang
         git clone https://github.com/sbwml/packages_lang_golang -b 23.x feeds/packages/lang/golang
 
-        # 2. 修复 MosDNS (删除官方坏源，换 sbwml 最新完美源)
         find ./ -name "mosdns" -type d | xargs rm -rf
         find ./ -name "v2ray-geodata" -type d | xargs rm -rf
         git clone https://github.com/sbwml/luci-app-mosdns -b v5 package/mosdns
         git clone https://github.com/sbwml/v2ray-geodata package/v2ray-geodata
 
-        # 3. 修复 Filebrowser (删除官方带 Bug 的源码，换社区维护版)
         rm -rf feeds/packages/net/filebrowser
         rm -rf feeds/luci/applications/luci-app-filebrowser
         git clone https://github.com/sbwml/luci-app-filebrowser package/luci-app-filebrowser
@@ -180,7 +181,6 @@ jobs:
         CONFIG_PACKAGE_luci-app-openclash=y
         CONFIG_PACKAGE_luci-i18n-openclash-zh-cn=y
         
-        # ✅ MosDNS 满血回归
         CONFIG_PACKAGE_luci-app-mosdns=y
         CONFIG_PACKAGE_luci-i18n-mosdns-zh-cn=y
         CONFIG_PACKAGE_mosdns=y
@@ -191,7 +191,6 @@ jobs:
         CONFIG_PACKAGE_luci-app-store=y
         CONFIG_PACKAGE_luci-i18n-store-zh-cn=y
 
-        # ✅ Filebrowser 满血回归
         CONFIG_PACKAGE_luci-app-filebrowser=y
         CONFIG_PACKAGE_luci-i18n-filebrowser-zh-cn=y
 
@@ -402,10 +401,9 @@ jobs:
       timeout-minutes: 360
       run: |
         cd openwrt
-        # 🚀 [专家级优化]：限制 Go 编译器的内存回收上限，防止 OOM
+        export FORCE_UNSAFE_CONFIGURE=1
         export GOMEMLIMIT="6GiB"
         export GOGC="50"
-        export FORCE_UNSAFE_CONFIGURE=1
         set -o pipefail
         
         MEM_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
@@ -417,9 +415,10 @@ jobs:
           JOBS=$(nproc)
         fi
         
-        if ! make -j${JOBS}; then
+        # 🚀 [终极优化]: 确保 GOMEMLIMIT 参数被 Make 进程直接继承
+        if ! make -j${JOBS} GOMEMLIMIT=6GiB GOGC=50; then
           echo "多线程编译失败，开始单线程生成详细排障日志并尝试恢复..."
-          if ! make -j1 V=s 2>&1 | tee build.log; then
+          if ! make -j1 V=s GOMEMLIMIT=6GiB GOGC=50 2>&1 | tee build.log; then
             echo "单线程编译也失败了，请前往 Artifacts 下载 build.log 查看详细错误。"
             exit 1
           else
@@ -489,19 +488,20 @@ jobs:
         body_path: release.txt
         files: ${{ env.FIRMWARE }}/*
 
+    # 🚀 [终极优化]: 匹配新的 Cache Key
     - name: Save ccache
       uses: actions/cache/save@v4
       if: steps.compile.outputs.status == 'success'
       with:
         path: openwrt/.ccache
-        key: ${{ runner.os }}-openwrt-ccache-${{ github.ref_name }}-${{ github.sha }}
+        key: ${{ runner.os }}-openwrt-ccache-${{ hashFiles('**/*.yml', 'diy-part*.sh') }}
         
     - name: Save dl
       uses: actions/cache/save@v4
       if: steps.compile.outputs.status == 'success'
       with:
         path: openwrt/dl
-        key: ${{ runner.os }}-openwrt-dl-${{ github.ref_name }}-${{ github.sha }}
+        key: ${{ runner.os }}-openwrt-dl-${{ hashFiles('**/*.yml', 'diy-part*.sh') }}
         
     - name: Delete workflow runs
       uses: Mattraks/delete-workflow-runs@v2
