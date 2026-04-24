@@ -71,11 +71,12 @@ jobs:
         git clone $REPO_URL -b $REPO_BRANCH openwrt
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
 
+    # 🟢 [缓存优化] 使用 github.sha 提高精确命中率，避免无限生成新缓存
     - name: Restore ccache
       uses: actions/cache/restore@v4
       with:
         path: openwrt/.ccache
-        key: ${{ runner.os }}-openwrt-ccache-${{ github.ref_name }}-${{ github.run_id }}
+        key: ${{ runner.os }}-openwrt-ccache-${{ github.ref_name }}-${{ github.sha }}
         restore-keys: |
           ${{ runner.os }}-openwrt-ccache-${{ github.ref_name }}-
 
@@ -83,7 +84,7 @@ jobs:
       uses: actions/cache/restore@v4
       with:
         path: openwrt/dl
-        key: ${{ runner.os }}-openwrt-dl-${{ github.ref_name }}-${{ github.run_id }}
+        key: ${{ runner.os }}-openwrt-dl-${{ github.ref_name }}-${{ github.sha }}
         restore-keys: |
           ${{ runner.os }}-openwrt-dl-${{ github.ref_name }}-
 
@@ -97,7 +98,7 @@ jobs:
         echo "src-git istore https://github.com/linkease/istore;main" >> feeds.conf.default
         git clone --depth=1 https://github.com/zzsj0928/luci-app-pushbot.git package/luci-app-pushbot
         
-        # 🔧 [精准修复]: 彻底删除 pushbot 对不存在包 iputils-arping 的硬依赖
+        # 🔧 [精准修复]: 删除 pushbot 对不存在包 iputils-arping 的硬依赖
         sed -i 's/iputils-arping//g' package/luci-app-pushbot/Makefile
         
         ./scripts/feeds update -a
@@ -361,7 +362,18 @@ jobs:
         cd openwrt
         export FORCE_UNSAFE_CONFIGURE=1
         set -o pipefail
-        if ! make -j$(nproc); then
+        
+        # 🟢 [智能并发] 自动探测可用内存，若小于 8GB 则保守并发防止 OOM (Github标准Runner为7GB)
+        MEM_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+        MEM_GB=$((MEM_KB / 1024 / 1024))
+        if [ $MEM_GB -lt 8 ]; then
+          JOBS=2
+          echo "⚠️ 宿主机内存 ${MEM_GB}GB < 8GB，强制使用 -j2 防止内存溢出(OOM)"
+        else
+          JOBS=$(nproc)
+        fi
+        
+        if ! make -j${JOBS}; then
           echo "多线程编译失败，开始单线程生成详细排障日志并尝试恢复..."
           if ! make -j1 V=s 2>&1 | tee build.log; then
             echo "单线程编译也失败了，请前往 Artifacts 下载 build.log 查看详细错误。"
@@ -384,17 +396,30 @@ jobs:
       if: (!cancelled())
       run: df -hT
 
+    # 🟢 [精确实体验证] 必须匹配到完整的 x86_64 img.gz，并且大小必须大于 15MB，否则直接判死刑
     - name: Organize files
       id: organize
       if: steps.compile.outputs.status == 'success' && env.UPLOAD_FIRMWARE == 'true' && !cancelled()
       run: |
         cd openwrt/bin/targets/*/*
         rm -rf packages
-        if ! ls *img* *ext4 *squashfs* *iso* *gz* 2>/dev/null | grep -q .; then
-          echo "❌ 致命错误：编译过程看似成功，但未能在 targets 目录下找到任何固件实体产物！"
-          echo "这通常是因为核心包依赖错误导致打包被静默跳过。"
+        
+        # 查找包含 combined 字样的最终合并镜像
+        FIRMWARE=$(ls -1 *combined*efi.img.gz *combined.img.gz *squashfs-combined*.img.gz 2>/dev/null | head -1)
+        if [ -z "$FIRMWARE" ]; then
+          echo "❌ 致命错误：未能在 targets 目录下找到 x86_64 最终合并固件！"
+          echo "当前目录下的残留文件为："
+          ls -lah
           exit 1
         fi
+        
+        SIZE=$(stat -c%s "$FIRMWARE")
+        if [ $SIZE -lt 15000000 ]; then
+          echo "❌ 固件异常小（${SIZE} bytes，小于15MB），编译极不完整！"
+          exit 1
+        fi
+        
+        echo "✅ 固件完美通过验证: $FIRMWARE ($(numfmt --to=iec $SIZE))"
         echo "FIRMWARE=$PWD" >> $GITHUB_ENV
         echo "status=success" >> $GITHUB_OUTPUT
 
@@ -428,14 +453,14 @@ jobs:
       if: always()
       with:
         path: openwrt/.ccache
-        key: ${{ runner.os }}-openwrt-ccache-${{ github.ref_name }}-${{ github.run_id }}
+        key: ${{ runner.os }}-openwrt-ccache-${{ github.ref_name }}-${{ github.sha }}
         
     - name: Save dl
       uses: actions/cache/save@v4
       if: always()
       with:
         path: openwrt/dl
-        key: ${{ runner.os }}-openwrt-dl-${{ github.ref_name }}-${{ github.run_id }}
+        key: ${{ runner.os }}-openwrt-dl-${{ github.ref_name }}-${{ github.sha }}
         
     - name: Delete workflow runs
       uses: Mattraks/delete-workflow-runs@v2
