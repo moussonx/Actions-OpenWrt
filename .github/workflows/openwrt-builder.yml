@@ -76,7 +76,8 @@ jobs:
         git clone $REPO_URL -b $REPO_BRANCH openwrt
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
 
-    - name: Restore Cache
+    # [缓存优化 1/2] 恢复 C/C++ 编译缓存
+    - name: Restore ccache
       uses: actions/cache/restore@v4
       with:
         path: openwrt/.ccache
@@ -84,6 +85,16 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-openwrt-ccache-${{ github.ref_name }}-
           ${{ runner.os }}-openwrt-ccache-
+
+    # [缓存优化 2/2] 恢复 DL 源码包缓存 (听取 DeepSeek 建议，加速源码下载)
+    - name: Restore dl
+      uses: actions/cache/restore@v4
+      with:
+        path: openwrt/dl
+        key: ${{ runner.os }}-openwrt-dl-${{ github.ref_name }}-${{ github.run_id }}
+        restore-keys: |
+          ${{ runner.os }}-openwrt-dl-${{ github.ref_name }}-
+          ${{ runner.os }}-openwrt-dl-
 
     - name: Load custom feeds
       run: |
@@ -414,12 +425,21 @@ jobs:
         body_path: release.txt
         files: ${{ env.FIRMWARE }}/*
 
-    - name: Save Cache
+    # [缓存优化保存 1/2] 保存 C/C++ 编译缓存
+    - name: Save ccache
       uses: actions/cache/save@v4
       if: always()
       with:
         path: openwrt/.ccache
         key: ${{ runner.os }}-openwrt-ccache-${{ github.ref_name }}-${{ github.run_id }}
+        
+    # [缓存优化保存 2/2] 保存 DL 源码包缓存
+    - name: Save dl
+      uses: actions/cache/save@v4
+      if: always()
+      with:
+        path: openwrt/dl
+        key: ${{ runner.os }}-openwrt-dl-${{ github.ref_name }}-${{ github.run_id }}
         
     - name: Delete workflow runs
       uses: Mattraks/delete-workflow-runs@v2
