@@ -5,7 +5,7 @@
 # See /LICENSE for more information.
 #
 # https://github.com/P3TERX/Actions-OpenWrt
-# Description: Build OpenWrt using GitHub Actions (Ultimate Edition)
+# Description: Build OpenWrt using GitHub Actions (Ultimate Edition V34)
 #
 
 name: Build OpenWrt
@@ -53,18 +53,13 @@ jobs:
 
     - name: Setup Swap Space
       run: |
-        # 1. 强制关闭系统底层的默认 Swap，解除所有文件锁 (吸收 DeepSeek 的精华)
         sudo swapoff -a 2>/dev/null || true
-        
-        # 2. 使用高兼容性模式和全新文件名，彻底绕过系统自带 /swapfile 冲突
         if ! sudo fallocate -l 8G /swapfile-extra 2>/dev/null; then
           sudo dd if=/dev/zero of=/swapfile-extra bs=1M count=8192 status=progress
         fi
         sudo chmod 600 /swapfile-extra
         sudo mkswap /swapfile-extra
         sudo swapon /swapfile-extra
-        
-        # 3. 优化内存交换倾向
         sudo sysctl -w vm.swappiness=10
         echo "✅ 8GB 独立 Swap 部署完成，内存护城河已建立！"
         free -h
@@ -132,17 +127,23 @@ jobs:
         sed -i 's/ImmortalWrt/XGATE/g' package/base-files/files/etc/banner
         sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
 
+        # 🚀 融合前沿智慧：动态适配 Go 编译器分支，防止上游废弃分支导致崩溃
         rm -rf feeds/packages/lang/golang
-        git clone https://github.com/sbwml/packages_lang_golang -b 23.x feeds/packages/lang/golang
+        if git ls-remote --heads https://github.com/sbwml/packages_lang_golang openwrt-23.05 | grep -q openwrt-23.05; then
+          git clone --depth=1 https://github.com/sbwml/packages_lang_golang -b openwrt-23.05 feeds/packages/lang/golang
+        else
+          git clone --depth=1 https://github.com/sbwml/packages_lang_golang -b main feeds/packages/lang/golang
+        fi
 
+        # 🚀 替换 MosDNS 源码并执行【降维打击】修复 go 1.25.0 诅咒
         find ./ -name "mosdns" -type d | xargs rm -rf
         find ./ -name "v2ray-geodata" -type d | xargs rm -rf
         git clone https://github.com/sbwml/luci-app-mosdns -b v5 package/mosdns
         git clone https://github.com/sbwml/v2ray-geodata package/v2ray-geodata
-
-        # 🚀 降维打击：强行降级 mosdns 到 5.3.3 稳定版，跳过哈希校验，彻底粉碎 Go 1.25.0 的超前诅咒！
-        sed -i 's/^PKG_VERSION.*/PKG_VERSION:=5.3.3/g' package/mosdns/mosdns/Makefile
-        sed -i 's/^PKG_HASH.*/PKG_HASH:=skip/g' package/mosdns/mosdns/Makefile
+        
+        # 核心降级逻辑：暴力替换版本号并跳过哈希检查
+        find package/mosdns -type f -name Makefile -exec sed -i 's/^PKG_VERSION.*/PKG_VERSION:=5.3.3/g' {} +
+        find package/mosdns -type f -name Makefile -exec sed -i 's/^PKG_HASH.*/PKG_HASH:=skip/g' {} +
 
         cat > .config <<EOF
         CONFIG_TARGET_x86=y
@@ -402,7 +403,7 @@ jobs:
         unset GOPATH GOROOT GO111MODULE CGO_ENABLED
         export FORCE_UNSAFE_CONFIGURE=1
         
-        # 🚀 听取专家建议：改用 export 将 Go 内存参数注册为全局环境变量，确保被所有子进程绝对继承
+        # 🚀 落实双AI会诊结果：将 Go 内存参数注册为全局环境变量
         export GOMEMLIMIT=6GiB
         export GOGC=50
         
@@ -415,14 +416,13 @@ jobs:
           JOBS=$(nproc)
         fi
         
-        # 移除 make 后面的宏变量，直接干干净净地执行
         if ! make -j${JOBS}; then
           echo "多线程编译失败，开始单线程生成详细排障日志并尝试恢复..."
           if ! make -j1 V=s 2>&1 | tee build.log; then
             echo "单线程编译也失败了，请前往 Artifacts 下载 build.log 查看详细错误。"
             exit 1
           else
-            echo "单线程编译成功！"
+            echo "单线程编译成功！刚才的多线程报错可能是竞态条件。"
           fi
         fi
         echo "status=success" >> $GITHUB_OUTPUT
@@ -464,7 +464,6 @@ jobs:
         FIRMWARE=$(ls -1 *combined*efi.img.gz *combined.img.gz *squashfs-combined*.img.gz 2>/dev/null | head -1)
         if [ -z "$FIRMWARE" ]; then
           echo "❌ 致命错误：未能在 targets 目录下找到 x86_64 最终合并固件！"
-          ls -lah
           exit 1
         fi
         
