@@ -102,7 +102,7 @@ jobs:
         echo "src-git istore https://github.com/linkease/istore;main" >> feeds.conf.default
         git clone --depth=1 https://github.com/zzsj0928/luci-app-pushbot.git package/luci-app-pushbot
         
-        # 🔧 [精准修复]: 彻底删除 pushbot 对不存在包 iputils-arping 的所有依赖声明
+        # 🔧 [核心修复]: 彻底删除 pushbot 对不存在包 iputils-arping 的硬依赖
         sed -i 's/iputils-arping//g' package/luci-app-pushbot/Makefile
         
         ./scripts/feeds update -a
@@ -120,6 +120,8 @@ jobs:
         sed -i 's/ImmortalWrt/XGATE/g' package/base-files/files/etc/banner
         sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
 
+        # 💡 [说明]：系统已安装 CMake 3.31.0，完全满足所有插件需求，已删除不安全的 CMake 降级代码。
+
         cat > .config <<EOF
         CONFIG_TARGET_x86=y
         CONFIG_TARGET_x86_64=y
@@ -127,13 +129,11 @@ jobs:
         CONFIG_TARGET_ROOTFS_PARTSIZE=1024
         # CONFIG_TARGET_ROOTFS_SQUASHFS is not set
 
-        # --- 深度修复：剥离可能引发编译崩溃的巨型包与断链模块 ---
-        # 剥离完整版 QEMU（极易崩溃且无用），仅保留系统需要的 guest agent
+        # --- 深度修复：剥离崩溃模块 ---
         # CONFIG_PACKAGE_qemu is not set
-        # 剥离 fullconenat-nft，防止内核依赖 kmod-nft-fullcone 断链引发 Error
         # CONFIG_PACKAGE_fullconenat-nft is not set
         # CONFIG_PACKAGE_kmod-nft-fullcone is not set
-        # --------------------------------------------------------
+        # -----------------------------
 
         CONFIG_DOCKER_CGROUP_OPTIONS=y
         CONFIG_DOCKER_NET_MACVLAN=y
@@ -300,7 +300,7 @@ jobs:
         CONFIG_PACKAGE_kmod-nft-tproxy=y
         CONFIG_PACKAGE_kmod-nls-cp932=y
         CONFIG_PACKAGE_kmod-nls-cp936=y
-        CONFIG_PACKAGE_kmod-nls-cp950=y
+        CONFIG_PACKAGE_nls-cp950=y
         CONFIG_PACKAGE_kmod-sched-cake=y
         CONFIG_PACKAGE_kmod-sched-core=y
         CONFIG_PACKAGE_kmod-sit=y
@@ -396,7 +396,7 @@ jobs:
       if: (!cancelled())
       run: df -hT
 
-    # 🚀 [防假阳性补丁]: 强行校验是否生成了固件文件实体
+    # 🚀 [终极物理校验]: 强行校验是否生成了固件文件实体，防假阳性
     - name: Organize files
       id: organize
       if: steps.compile.outputs.status == 'success' && env.UPLOAD_FIRMWARE == 'true' && !cancelled()
@@ -405,7 +405,7 @@ jobs:
         rm -rf packages
         if ! ls *img* *ext4 *squashfs* *iso* *gz* 2>/dev/null | grep -q .; then
           echo "❌ 致命错误：编译过程看似成功，但未能在 targets 目录下找到任何固件实体产物！"
-          echo "这通常是因为某些核心插件依赖错误导致整体被跳过打包。"
+          echo "这通常是因为核心包依赖错误导致打包被静默跳过。"
           exit 1
         fi
         echo "FIRMWARE=$PWD" >> $GITHUB_ENV
