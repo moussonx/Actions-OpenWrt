@@ -1,6 +1,6 @@
 #
 # Copyright (c) 2019-2020 P3TERX <https://p3terx.com>
-# Description: Build OpenWrt using GitHub Actions (Ultimate Edition V39 - Final Fixed)
+# Description: Build OpenWrt using GitHub Actions (Ultimate Edition V40 - Complete Final Version)
 #
 
 name: Build OpenWrt
@@ -131,7 +131,7 @@ jobs:
         CONFIG_TARGET_x86_64_DEVICE_generic=y
         CONFIG_TARGET_ROOTFS_PARTSIZE=1024
 
-        # 🚀【破除文件冲突】：明确禁用普通的 dnsmasq，防止与 dnsmasq-full 冲突
+        # 🚀【破除文件冲突】：明确禁用普通的 dnsmasq
         # CONFIG_PACKAGE_dnsmasq is not set
 
         CONFIG_DOCKER_CGROUP_OPTIONS=y
@@ -214,7 +214,7 @@ jobs:
         CONFIG_PACKAGE_luci-app-uhttpd=y
         CONFIG_PACKAGE_luci-light=y
         
-        # 🚀【彻底根除 SSL 冲突】：全方位显式强制系统全员使用高性能 OpenSSL！
+        # 🚀【彻底根除 SSL 冲突】：全员使用高性能 OpenSSL
         CONFIG_PACKAGE_luci-ssl-openssl=y
         CONFIG_PACKAGE_libustream-openssl=y
         CONFIG_PACKAGE_libuclient-openssl=y
@@ -389,7 +389,7 @@ jobs:
         export GOCACHE=$PWD/.gocache
         mkdir -p .gocache
         
-        # 🔬【Ccache 预检】：指定正确的缓存目录并打印初始状态
+        # 🔬【Ccache 预检】
         export CCACHE_DIR=$PWD/.ccache
         echo "========== Ccache 预检 =========="
         ccache -s
@@ -430,8 +430,15 @@ jobs:
         grep -n "no required module provides" build.log | tail -10 >> error_summary.txt || true
         echo -e "\n【内存溢出 (OOM) 崩溃】:" >> error_summary.txt
         grep -n "signal: killed\|Out of memory\|OOM" build.log | tail -5 >> error_summary.txt || true
-        echo -e "\n【其他 Error (最后20个)】:" >> error_summary.txt
-        grep -n -A 2 -B 2 -i "Error " build.log | tail -50 >> error_summary.txt || true
+
+    - name: Upload Error Logs
+      uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: OpenWrt_Crash_Logs_${{ github.run_id }}
+        path: |
+          openwrt/build.log
+          openwrt/error_summary.txt
 
     - name: Organize files
       id: organize
@@ -470,6 +477,15 @@ jobs:
         tag_name: ${{ steps.tag.outputs.release_tag }}
         body_path: release.txt
         files: ${{ env.FIRMWARE }}/*
+
+    - name: Remove old Releases
+      uses: dev-drprasad/delete-older-releases@v0.3.0
+      if: env.UPLOAD_RELEASE == 'true' && !cancelled()
+      with:
+        keep_latest: 3
+        delete_tags: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Save ccache
       uses: actions/cache/save@v4
