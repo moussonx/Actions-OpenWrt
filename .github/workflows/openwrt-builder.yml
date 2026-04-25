@@ -388,6 +388,11 @@ jobs:
         export GOGC=50
         export GOCACHE=$PWD/.gocache
         mkdir -p .gocache
+
+        # 🔬【Ccache 预检】：指定正确的缓存目录并打印初始状态
+        export CCACHE_DIR=$PWD/.ccache
+        echo "========== Ccache 预检 =========="
+        ccache -s
         
         MEM_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
         MEM_GB=$((MEM_KB / 1024 / 1024))
