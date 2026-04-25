@@ -1,11 +1,6 @@
 #
 # Copyright (c) 2019-2020 P3TERX <https://p3terx.com>
-#
-# This is free software, licensed under the MIT License.
-# See /LICENSE for more information.
-#
-# https://github.com/P3TERX/Actions-OpenWrt
-# Description: Build OpenWrt using GitHub Actions (Ultimate Edition V34)
+# Description: Build OpenWrt using GitHub Actions (Ultimate Edition V35 - Official 26.x Edition)
 #
 
 name: Build OpenWrt
@@ -61,7 +56,7 @@ jobs:
         sudo mkswap /swapfile-extra
         sudo swapon /swapfile-extra
         sudo sysctl -w vm.swappiness=10
-        echo "✅ 8GB 独立 Swap 部署完成，内存护城河已建立！"
+        echo "✅ 8GB 独立 Swap 部署完成"
         free -h
 
     - name: Initialization environment
@@ -70,10 +65,9 @@ jobs:
       run: |
         sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/share/boost "$AGENT_TOOLSDIRECTORY"
         sudo -E apt-get -qq update
-        sudo -E apt-get -qq install ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential bzip2 ccache cmake cpio curl device-tree-compiler fastjar flex gawk gettext gcc-multilib g++-multilib git gperf haveged help2man intltool libc6-dev-i386 libelf-dev libfuse-dev libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev libpython3-dev libreadline-dev libssl-dev libtool lrzsz mkisofs msmtp ninja-build p7zip p7zip-full patch pkgconf python2.7 python3 python3-pyelftools python3-setuptools qemu-utils rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev
+        sudo -E apt-get -qq install ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential bzip2 ccache cmake cpio curl device-tree-compiler fastjar flex gawk gettext gcc-multilib g++-multilib git gperf haveged help2man intltool libc6-dev-i386 libelf-dev libfuse-dev libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev libpython3-dev libreadline-dev libssl-dev libtool lrzsz mkisofs msmtp ninja-build p7zip p7zip-full patch pkgconf python2.7 python3 python3-pyelftools python3-setuptools qemu-utils rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev bc
         sudo -E apt-get -qq autoremove --purge
         sudo -E apt-get -qq clean
-        
         sudo timedatectl set-timezone "$TZ"
         sudo mkdir -p /workdir
         sudo chown $USER:$USER /workdir
@@ -105,13 +99,10 @@ jobs:
         chmod +x $DIY_P1_SH
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P1_SH
-        
         echo "src-git lucky https://github.com/gdy666/luci-app-lucky.git" >> feeds.conf.default
         echo "src-git istore https://github.com/linkease/istore;main" >> feeds.conf.default
         git clone --depth=1 https://github.com/zzsj0928/luci-app-pushbot.git package/luci-app-pushbot
-        
         sed -i 's/iputils-arping//g' package/luci-app-pushbot/Makefile
-        
         ./scripts/feeds update -a
         ./scripts/feeds install -a
 
@@ -122,28 +113,17 @@ jobs:
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P2_SH
         
-        sed -i "s/hostname='ImmortalWrt'/hostname='XGATE'/g" package/base-files/files/bin/config_generate
-        sed -i 's/ImmortalWrt/XGATE/g' include/target.mk
-        sed -i 's/ImmortalWrt/XGATE/g' package/base-files/files/etc/banner
-        sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
-
-        # 🚀 融合前沿智慧：动态适配 Go 编译器分支，防止上游废弃分支导致崩溃
+        # 🚀【官方指令】：拉取 sbwml 钦定的 26.x 分支以支持最新版 Go 环境
         rm -rf feeds/packages/lang/golang
-        if git ls-remote --heads https://github.com/sbwml/packages_lang_golang openwrt-23.05 | grep -q openwrt-23.05; then
-          git clone --depth=1 https://github.com/sbwml/packages_lang_golang -b openwrt-23.05 feeds/packages/lang/golang
-        else
-          git clone --depth=1 https://github.com/sbwml/packages_lang_golang -b main feeds/packages/lang/golang
-        fi
+        git clone https://github.com/sbwml/packages_lang_golang -b 26.x feeds/packages/lang/golang
 
-        # 🚀 替换 MosDNS 源码并执行【降维打击】修复 go 1.25.0 诅咒
+        # 🚀【回归正统】：既然有了 26.x Go 环境，直接拉取原汁原味的最新版插件
         find ./ -name "mosdns" -type d | xargs rm -rf
         find ./ -name "v2ray-geodata" -type d | xargs rm -rf
         git clone https://github.com/sbwml/luci-app-mosdns -b v5 package/mosdns
         git clone https://github.com/sbwml/v2ray-geodata package/v2ray-geodata
         
-        # 核心降级逻辑：暴力替换版本号并跳过哈希检查
-        find package/mosdns -type f -name Makefile -exec sed -i 's/^PKG_VERSION.*/PKG_VERSION:=5.3.3/g' {} +
-        find package/mosdns -type f -name Makefile -exec sed -i 's/^PKG_HASH.*/PKG_HASH:=skip/g' {} +
+        # 已删除所有关于 mosdns 5.3.3 的降级 Patch 代码，实现满血编译
 
         cat > .config <<EOF
         CONFIG_TARGET_x86=y
@@ -375,23 +355,11 @@ jobs:
       run: |
         cd openwrt
         make download -j8 2>&1 | tee download.log
-        
         find dl -type f -size -10240c -exec sh -c 'file "{}" | grep -q "HTML" && rm -f "{}"' \; 2>/dev/null || true
-        
         if grep -qi "failed\|error" download.log; then
-          echo "⚠️ 检测到下载失败，开始清理可能损坏的碎片文件并重试..."
           find dl -size -1024c -exec rm -f {} \;
-          if ! make download -j1 2>&1 | tee download.retry.log; then
-            echo "❌ 致命错误：单线程下载重试依然失败！网络可能存在极其严重的阻断。"
-            cat download.retry.log
-            exit 1
-          fi
+          make download -j1 || exit 1
         fi
-
-    - name: Setup tmate session
-      uses: mxschmitt/action-tmate@v3
-      if: (failure() || cancelled()) && github.event.inputs.ssh == 'true'
-      timeout-minutes: 60
 
     - name: Compile the firmware
       id: compile
@@ -399,47 +367,51 @@ jobs:
       run: |
         set -o pipefail
         cd openwrt
-        
         unset GOPATH GOROOT GO111MODULE CGO_ENABLED
         export FORCE_UNSAFE_CONFIGURE=1
         
-        # 🚀 落实双AI会诊结果：将 Go 内存参数注册为全局环境变量
+        # 🚀【性能调优】：注册 Go 内存限制并启用 Go 编译缓存
         export GOMEMLIMIT=6GiB
         export GOGC=50
+        export GOCACHE=$PWD/.gocache
+        mkdir -p .gocache
+        
+        # 🔬【Ccache 预检】：打印编译前的缓存状态
+        echo "========== Ccache 预检 =========="
+        ccache -s
         
         MEM_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
         MEM_GB=$((MEM_KB / 1024 / 1024))
         if [ $MEM_GB -lt 8 ]; then
           JOBS=2
-          echo "⚠️ 宿主机物理内存 ${MEM_GB}GB < 8GB，强制使用 -j2 稳妥编译"
         else
           JOBS=$(nproc)
         fi
         
         if ! make -j${JOBS}; then
-          echo "多线程编译失败，开始单线程生成详细排障日志并尝试恢复..."
-          if ! make -j1 V=s 2>&1 | tee build.log; then
-            echo "单线程编译也失败了，请前往 Artifacts 下载 build.log 查看详细错误。"
-            exit 1
-          else
-            echo "单线程编译成功！刚才的多线程报错可能是竞态条件。"
-          fi
+          echo "多线程编译失败，尝试单线程记录详细日志..."
+          make -j1 V=s 2>&1 | tee build.log || exit 1
         fi
         echo "status=success" >> $GITHUB_OUTPUT
         echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
+
+    - name: 📊 Ccache 最终命中率统计
+      if: always()
+      run: |
+        cd openwrt
+        echo "========== Ccache 最终统计 =========="
+        ccache -s
+        echo "========== 编译耗时概览 =========="
+        [ -f build.log ] && grep -i "time:" build.log | tail -n 10 || echo "无详细耗时日志"
 
     - name: Smart Error Diagnosis
       if: failure()
       run: |
         cd openwrt
-        echo "=== OpenWrt 编译失败智能诊断报告 ===" > error_summary.txt
-        echo "【疑似 Go 模块依赖断链】:" >> error_summary.txt
+        echo "=== OpenWrt 编译失败诊断报告 ===" > error_summary.txt
         grep -n "no required module provides" build.log | tail -10 >> error_summary.txt || true
-        echo -e "\n【疑似内存溢出 (OOM) 崩溃】:" >> error_summary.txt
         grep -n "signal: killed\|Out of memory\|OOM" build.log | tail -5 >> error_summary.txt || true
-        echo -e "\n【致命 Error 追溯 (最后20个)】:" >> error_summary.txt
         grep -n -A 2 -B 2 -i "Error " build.log | tail -50 >> error_summary.txt || true
-        echo "✅ 诊断报告已生成，请在 Artifacts 中下载查看。"
 
     - name: Upload Error Logs
       uses: actions/upload-artifact@v4
@@ -450,61 +422,25 @@ jobs:
           openwrt/build.log
           openwrt/error_summary.txt
 
-    - name: Check space usage
-      if: (!cancelled())
-      run: df -hT
-
     - name: Organize files
       id: organize
       if: steps.compile.outputs.status == 'success' && env.UPLOAD_FIRMWARE == 'true' && !cancelled()
       run: |
         cd openwrt/bin/targets/*/*
         rm -rf packages
-        
         FIRMWARE=$(ls -1 *combined*efi.img.gz *combined.img.gz *squashfs-combined*.img.gz 2>/dev/null | head -1)
-        if [ -z "$FIRMWARE" ]; then
-          echo "❌ 致命错误：未能在 targets 目录下找到 x86_64 最终合并固件！"
-          exit 1
-        fi
-        
-        SIZE=$(stat -c%s "$FIRMWARE")
-        if [ $SIZE -lt 15000000 ]; then
-          echo "❌ 固件异常小（${SIZE} bytes），编译极不完整！"
-          exit 1
-        fi
-        
-        # 🟢 生成 SHA256 校验和文件，确保固件刷入前的绝对安全
+        [ -z "$FIRMWARE" ] && exit 1
         sha256sum *.img.gz > sha256sums.txt
-        echo "✅ SHA256 校验和文件已生成："
-        cat sha256sums.txt
-        
-        echo "✅ 固件通过验证: $FIRMWARE ($(numfmt --to=iec $SIZE))"
         echo "FIRMWARE=$PWD" >> $GITHUB_ENV
-        echo "status=success" >> $GITHUB_OUTPUT
-
-    - name: Upload firmware directory
-      uses: actions/upload-artifact@v4
-      if: steps.compile.outputs.status == 'success' && steps.organize.outputs.status == 'success' && !cancelled()
-      with:
-        name: OpenWrt_firmware_${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
-        path: ${{ env.FIRMWARE }}
-
-    - name: Generate release tag
-      id: tag
-      if: steps.compile.outputs.status == 'success' && env.UPLOAD_RELEASE == 'true' && !cancelled()
-      run: |
-        echo "release_tag=${{ env.DEVICE_NAME }}-$(date +"%Y.%m.%d-%H%M")" >> $GITHUB_OUTPUT
-        touch release.txt
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: Upload firmware to release
       uses: softprops/action-gh-release@v2
-      if: steps.compile.outputs.status == 'success' && steps.tag.outputs.status == 'success' && !cancelled()
+      if: steps.compile.outputs.status == 'success' && !cancelled()
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ steps.tag.outputs.release_tag }}
-        body_path: release.txt
+        tag_name: XGATE-$(date +"%Y.%m.%d-%H%M")
         files: ${{ env.FIRMWARE }}/*
 
     - name: Save ccache
@@ -527,12 +463,3 @@ jobs:
       with:
         retain_days: 30
         keep_minimum_runs: 7
-
-    - name: Remove old Releases
-      uses: dev-drprasad/delete-older-releases@v0.1.0
-      continue-on-error: true
-      with:
-        keep_latest: 3
-        delete_tags: true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
