@@ -214,10 +214,18 @@ jobs:
         CONFIG_PACKAGE_luci-app-uhttpd=y
         CONFIG_PACKAGE_luci-light=y
         
-        # 🚀【彻底根除 SSL 冲突】：强制系统抛弃低配 mbedtls，全员使用高性能 OpenSSL！
+        # 🚀【彻底根除 SSL 冲突】：全方位显式强制系统全员使用高性能 OpenSSL！
+        CONFIG_PACKAGE_luci-ssl-openssl=y
+        CONFIG_PACKAGE_libustream-openssl=y
+        CONFIG_PACKAGE_libuclient-openssl=y
+        CONFIG_PACKAGE_libopenssl=y
+        CONFIG_PACKAGE_libopenssl-debug=y
+        CONFIG_PACKAGE_libopenssl-engines=y
+        CONFIG_PACKAGE_libopenssl-conf=y
         # CONFIG_PACKAGE_luci-ssl is not set
         # CONFIG_PACKAGE_libustream-mbedtls is not set
-        CONFIG_PACKAGE_luci-ssl-openssl=y
+        # CONFIG_PACKAGE_libuclient-mbedtls is not set
+        # CONFIG_PACKAGE_libmbedtls is not set
 
         CONFIG_PACKAGE_bash=y
         CONFIG_PACKAGE_blkid=y
