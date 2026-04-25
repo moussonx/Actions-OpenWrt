@@ -1,6 +1,6 @@
 #
 # Copyright (c) 2019-2020 P3TERX <https://p3terx.com>
-# Description: Build OpenWrt using GitHub Actions (Ultimate Edition V35 - Official 26.x Edition)
+# Description: Build OpenWrt using GitHub Actions (Ultimate Edition V38 - OpenSSL Unified Fixed)
 #
 
 name: Build OpenWrt
@@ -113,23 +113,26 @@ jobs:
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P2_SH
         
-        # 🚀【官方指令】：拉取 sbwml 钦定的 26.x 分支以支持最新版 Go 环境
+        # 🚀【官方指令】：拉取 26.x Go 引擎
         rm -rf feeds/packages/lang/golang
         git clone https://github.com/sbwml/packages_lang_golang -b 26.x feeds/packages/lang/golang
 
-        # 🚀【回归正统】：既然有了 26.x Go 环境，直接拉取原汁原味的最新版插件
         find ./ -name "mosdns" -type d | xargs rm -rf
         find ./ -name "v2ray-geodata" -type d | xargs rm -rf
         git clone https://github.com/sbwml/luci-app-mosdns -b v5 package/mosdns
         git clone https://github.com/sbwml/v2ray-geodata package/v2ray-geodata
         
-        # 已删除所有关于 mosdns 5.3.3 的降级 Patch 代码，实现满血编译
+        # 🚀【破除文件冲突】：禁止 v2ray-geodata 往 xray 的地盘创建软链接
+        sed -i '/\/usr\/share\/xray/d' package/v2ray-geodata/Makefile
 
         cat > .config <<EOF
         CONFIG_TARGET_x86=y
         CONFIG_TARGET_x86_64=y
         CONFIG_TARGET_x86_64_DEVICE_generic=y
         CONFIG_TARGET_ROOTFS_PARTSIZE=1024
+
+        # 🚀【破除文件冲突】：明确禁用普通的 dnsmasq，防止与 dnsmasq-full 冲突
+        # CONFIG_PACKAGE_dnsmasq is not set
 
         CONFIG_DOCKER_CGROUP_OPTIONS=y
         CONFIG_DOCKER_NET_MACVLAN=y
@@ -210,7 +213,11 @@ jobs:
         CONFIG_PACKAGE_uhttpd-mod-ubus=y
         CONFIG_PACKAGE_luci-app-uhttpd=y
         CONFIG_PACKAGE_luci-light=y
-        CONFIG_PACKAGE_luci-ssl=y
+        
+        # 🚀【彻底根除 SSL 冲突】：强制系统抛弃低配 mbedtls，全员使用高性能 OpenSSL！
+        # CONFIG_PACKAGE_luci-ssl is not set
+        # CONFIG_PACKAGE_libustream-mbedtls is not set
+        CONFIG_PACKAGE_luci-ssl-openssl=y
 
         CONFIG_PACKAGE_bash=y
         CONFIG_PACKAGE_blkid=y
@@ -369,15 +376,10 @@ jobs:
         unset GOPATH GOROOT GO111MODULE CGO_ENABLED
         export FORCE_UNSAFE_CONFIGURE=1
         
-        # 🚀【性能调优】：注册 Go 内存限制并启用 Go 编译缓存
         export GOMEMLIMIT=6GiB
         export GOGC=50
         export GOCACHE=$PWD/.gocache
         mkdir -p .gocache
-        
-        # 🔬【Ccache 预检】：打印编译前的缓存状态
-        echo "========== Ccache 预检 =========="
-        ccache -s
         
         MEM_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
         MEM_GB=$((MEM_KB / 1024 / 1024))
@@ -408,8 +410,13 @@ jobs:
       run: |
         cd openwrt
         echo "=== OpenWrt 编译失败诊断报告 ===" > error_summary.txt
+        echo -e "\n【!!! 文件冲突与依赖错误 !!!】:" >> error_summary.txt
+        grep -n -A 10 -B 5 -i "Collected errors" build.log >> error_summary.txt || true
+        echo -e "\n【Go 模块依赖错误】:" >> error_summary.txt
         grep -n "no required module provides" build.log | tail -10 >> error_summary.txt || true
+        echo -e "\n【内存溢出 (OOM) 崩溃】:" >> error_summary.txt
         grep -n "signal: killed\|Out of memory\|OOM" build.log | tail -5 >> error_summary.txt || true
+        echo -e "\n【其他 Error (最后20个)】:" >> error_summary.txt
         grep -n -A 2 -B 2 -i "Error " build.log | tail -50 >> error_summary.txt || true
 
     - name: Upload Error Logs
