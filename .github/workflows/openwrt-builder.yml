@@ -275,4 +275,219 @@ jobs:
 
         CONFIG_PACKAGE_kmod-br-netfilter=y
         CONFIG_PACKAGE_kmod-crypto-acompress=y
-        CONFIG_PACKAGE_kmod-crypto-bl
+        CONFIG_PACKAGE_kmod-crypto-blake2b=y
+        CONFIG_PACKAGE_kmod-crypto-xxhash=y
+        CONFIG_PACKAGE_kmod-dummy=y
+        CONFIG_PACKAGE_kmod-fs-btrfs=y
+        CONFIG_PACKAGE_kmod-fs-msdos=y
+        CONFIG_PACKAGE_kmod-ifb=y
+        CONFIG_PACKAGE_kmod-inet-diag=y
+        CONFIG_PACKAGE_kmod-ip6tables=y
+        CONFIG_PACKAGE_kmod-ipt-conntrack=y
+        CONFIG_PACKAGE_kmod-ipt-conntrack-extra=y
+        CONFIG_PACKAGE_kmod-ipt-core=y
+        CONFIG_PACKAGE_kmod-ipt-extra=y
+        CONFIG_PACKAGE_kmod-ipt-ipopt=y
+        CONFIG_PACKAGE_kmod-ipt-ipset=y
+        CONFIG_PACKAGE_kmod-ipt-nat=y
+        CONFIG_PACKAGE_kmod-ipt-nat6=y
+        CONFIG_PACKAGE_kmod-ipt-physdev=y
+        CONFIG_PACKAGE_kmod-iptunnel=y
+        CONFIG_PACKAGE_kmod-iptunnel4=y
+        CONFIG_PACKAGE_kmod-lib-lzo=y
+        CONFIG_PACKAGE_kmod-lib-raid6=y
+        CONFIG_PACKAGE_kmod-lib-xor=y
+        CONFIG_PACKAGE_kmod-lib-xxhash=y
+        CONFIG_PACKAGE_kmod-lib-zlib-deflate=y
+        CONFIG_PACKAGE_kmod-lib-zlib-inflate=y
+        CONFIG_PACKAGE_kmod-lib-zstd=y
+        CONFIG_PACKAGE_kmod-netlink-diag=y
+        CONFIG_PACKAGE_kmod-nf-conncount=y
+        CONFIG_PACKAGE_kmod-nf-ipt=y
+        CONFIG_PACKAGE_kmod-nf-ipt6=y
+        CONFIG_PACKAGE_kmod-nf-ipvs=y
+        CONFIG_PACKAGE_kmod-nf-nat6=y
+        CONFIG_PACKAGE_kmod-nf-socket=y
+        CONFIG_PACKAGE_kmod-nf-tproxy=y
+        CONFIG_PACKAGE_kmod-nft-compat=y
+        CONFIG_PACKAGE_kmod-nft-socket=y
+        CONFIG_PACKAGE_kmod-nft-tproxy=y
+        CONFIG_PACKAGE_kmod-nls-cp932=y
+        CONFIG_PACKAGE_kmod-nls-cp936=y
+        CONFIG_PACKAGE_kmod-nls-cp950=y
+        CONFIG_PACKAGE_kmod-sched-cake=y
+        CONFIG_PACKAGE_kmod-sched-core=y
+        CONFIG_PACKAGE_kmod-sit=y
+        CONFIG_PACKAGE_kmod-tcp-bbr=y
+        CONFIG_PACKAGE_kmod-tun=y
+        CONFIG_PACKAGE_kmod-veth=y
+        
+        CONFIG_PACKAGE_libatomic=y
+        CONFIG_PACKAGE_libattr=y
+        CONFIG_PACKAGE_libbpf=y
+        CONFIG_PACKAGE_libcap=y
+        CONFIG_PACKAGE_libcap-ng=y
+        CONFIG_PACKAGE_libcurl=y
+        CONFIG_PACKAGE_libelf=y
+        CONFIG_PACKAGE_libevdev=y
+        CONFIG_PACKAGE_libffi=y
+        CONFIG_PACKAGE_libipset=y
+        CONFIG_PACKAGE_libiptext=y
+        CONFIG_PACKAGE_libiptext-nft=y
+        CONFIG_PACKAGE_libiptext6=y
+        CONFIG_PACKAGE_libltdl=y
+        CONFIG_PACKAGE_liblua5.3=y
+        CONFIG_PACKAGE_liblzo=y
+        CONFIG_PACKAGE_libmount=y
+        CONFIG_PACKAGE_libnghttp2=y
+        CONFIG_PACKAGE_libparted=y
+        CONFIG_PACKAGE_libpcap=y
+        CONFIG_PACKAGE_libpcre2=y
+        CONFIG_PACKAGE_libreadline=y
+        CONFIG_PACKAGE_libseccomp=y
+        CONFIG_PACKAGE_libstdcpp=y
+        CONFIG_PACKAGE_libuci-lua=y
+        CONFIG_PACKAGE_libudev-zero=y
+        CONFIG_PACKAGE_libuv=y
+        CONFIG_PACKAGE_libwebsockets-full=y
+        CONFIG_PACKAGE_libxtables=y
+
+        CONFIG_SING_BOX_BUILD_ACME=y
+        CONFIG_SING_BOX_BUILD_CLASH_API=y
+        CONFIG_SING_BOX_BUILD_GVISOR=y
+        CONFIG_SING_BOX_BUILD_QUIC=y
+        CONFIG_SING_BOX_BUILD_TAILSCALE=y
+        CONFIG_SING_BOX_BUILD_UTLS=y
+        CONFIG_SING_BOX_BUILD_WIREGUARD=y
+        EOF
+        
+        make defconfig
+        echo "CONFIG_CCACHE=y" >> .config
+
+    - name: Download package
+      id: package
+      run: |
+        cd openwrt
+        make download -j8 2>&1 | tee download.log
+        find dl -type f -size -10240c -exec sh -c 'file "{}" | grep -q "HTML" && rm -f "{}"' \; 2>/dev/null || true
+        if grep -qi "failed\|error" download.log; then
+          find dl -size -1024c -exec rm -f {} \;
+          make download -j1 || exit 1
+        fi
+
+    - name: Compile the firmware
+      id: compile
+      timeout-minutes: 360
+      run: |
+        set -o pipefail
+        cd openwrt
+        unset GOPATH GOROOT GO111MODULE CGO_ENABLED
+        export FORCE_UNSAFE_CONFIGURE=1
+        
+        export GOMEMLIMIT=6GiB
+        export GOGC=50
+        export GOCACHE=$PWD/.gocache
+        mkdir -p .gocache
+        
+        # 🔬【Ccache 预检】：指定正确的缓存目录并打印初始状态
+        export CCACHE_DIR=$PWD/.ccache
+        echo "========== Ccache 预检 =========="
+        ccache -s
+        
+        MEM_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+        MEM_GB=$((MEM_KB / 1024 / 1024))
+        if [ $MEM_GB -lt 8 ]; then
+          JOBS=2
+        else
+          JOBS=$(nproc)
+        fi
+        
+        if ! make -j${JOBS}; then
+          echo "多线程编译失败，尝试单线程记录详细日志..."
+          make -j1 V=s 2>&1 | tee build.log || exit 1
+        fi
+        echo "status=success" >> $GITHUB_OUTPUT
+        echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
+
+    - name: 📊 Ccache 最终命中率统计
+      if: always()
+      run: |
+        cd openwrt
+        export CCACHE_DIR=$PWD/.ccache
+        echo "========== Ccache 最终统计 =========="
+        ccache -s
+        echo "========== 编译耗时概览 =========="
+        [ -f build.log ] && grep -i "time:" build.log | tail -n 10 || echo "无详细耗时日志"
+
+    - name: Smart Error Diagnosis
+      if: failure()
+      run: |
+        cd openwrt
+        echo "=== OpenWrt 编译失败诊断报告 ===" > error_summary.txt
+        echo -e "\n【!!! 文件冲突与依赖错误 !!!】:" >> error_summary.txt
+        grep -n -A 10 -B 5 -i "Collected errors" build.log >> error_summary.txt || true
+        echo -e "\n【Go 模块依赖错误】:" >> error_summary.txt
+        grep -n "no required module provides" build.log | tail -10 >> error_summary.txt || true
+        echo -e "\n【内存溢出 (OOM) 崩溃】:" >> error_summary.txt
+        grep -n "signal: killed\|Out of memory\|OOM" build.log | tail -5 >> error_summary.txt || true
+        echo -e "\n【其他 Error (最后20个)】:" >> error_summary.txt
+        grep -n -A 2 -B 2 -i "Error " build.log | tail -50 >> error_summary.txt || true
+
+    - name: Organize files
+      id: organize
+      if: steps.compile.outputs.status == 'success' && env.UPLOAD_FIRMWARE == 'true' && !cancelled()
+      run: |
+        cd openwrt/bin/targets/*/*
+        rm -rf packages
+        FIRMWARE=$(ls -1 *combined*efi.img.gz *combined.img.gz *squashfs-combined*.img.gz 2>/dev/null | head -1)
+        [ -z "$FIRMWARE" ] && exit 1
+        sha256sum *.img.gz > sha256sums.txt
+        echo "FIRMWARE=$PWD" >> $GITHUB_ENV
+        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: Upload firmware directory
+      uses: actions/upload-artifact@v4
+      if: steps.compile.outputs.status == 'success' && steps.organize.outputs.status == 'success' && !cancelled()
+      with:
+        name: OpenWrt_firmware_${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
+        path: ${{ env.FIRMWARE }}
+
+    - name: Generate release tag
+      id: tag
+      if: steps.compile.outputs.status == 'success' && env.UPLOAD_RELEASE == 'true' && !cancelled()
+      run: |
+        TAG_NAME="XGATE-$(date +"%Y.%m.%d-%H%M")"
+        echo "release_tag=$TAG_NAME" >> $GITHUB_OUTPUT
+        touch release.txt
+        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: Upload firmware to release
+      uses: softprops/action-gh-release@v2
+      if: steps.tag.outputs.status == 'success' && !cancelled()
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.tag.outputs.release_tag }}
+        body_path: release.txt
+        files: ${{ env.FIRMWARE }}/*
+
+    - name: Save ccache
+      uses: actions/cache/save@v4
+      if: steps.compile.outputs.status == 'success'
+      with:
+        path: openwrt/.ccache
+        key: ${{ runner.os }}-openwrt-ccache-${{ hashFiles('**/*.yml', 'diy-part*.sh') }}
+        
+    - name: Save dl
+      uses: actions/cache/save@v4
+      if: steps.compile.outputs.status == 'success'
+      with:
+        path: openwrt/dl
+        key: ${{ runner.os }}-openwrt-dl-${{ hashFiles('**/*.yml', 'diy-part*.sh') }}
+        
+    - name: Delete workflow runs
+      uses: Mattraks/delete-workflow-runs@v2
+      continue-on-error: true
+      with:
+        retain_days: 30
+        keep_minimum_runs: 7
