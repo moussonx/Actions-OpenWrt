@@ -229,7 +229,6 @@ jobs:
         CONFIG_PACKAGE_lsblk=y
         CONFIG_PACKAGE_mount-utils=y
         CONFIG_PACKAGE_parted=y
-        CONFIG_PACKAGE_qemu-ga=y
         CONFIG_PACKAGE_resolveip=y
         CONFIG_PACKAGE_tailscale=y
         CONFIG_PACKAGE_tcpdump=y
