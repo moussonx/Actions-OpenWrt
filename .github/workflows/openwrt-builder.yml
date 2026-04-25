@@ -408,6 +408,7 @@ jobs:
       if: always()
       run: |
         cd openwrt
+        export CCACHE_DIR=$PWD/.ccache
         echo "========== Ccache 最终统计 =========="
         ccache -s
         echo "========== 编译耗时概览 =========="
