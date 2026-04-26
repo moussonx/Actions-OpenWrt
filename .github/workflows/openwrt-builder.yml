@@ -207,9 +207,6 @@ jobs:
         CONFIG_PACKAGE_luci-app-watchdog=y
         CONFIG_PACKAGE_luci-i18n-watchdog-zh-cn=y
 
-        # ========== 确认剔除重叠功能（保持纯净） ==========
-        # CONFIG_PACKAGE_luci-app-adbyby-plus is not set
-
         # 🚀【VPN 灾备套件】：WireGuard 备胎
         CONFIG_PACKAGE_kmod-wireguard=y
         CONFIG_PACKAGE_wireguard-tools=y
