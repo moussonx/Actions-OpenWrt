@@ -28,7 +28,7 @@ echo "iptables -t nat -I POSTROUTING -o br-lan -j MASQUERADE" >> package/network
 
 # 2. 预下载 OpenClash Meta 内核（解决首次启动无法下载的死结）
 mkdir -p files/etc/openclash/core
-wget -qO- https://github.com/MetaCubeX/mihomo/releases/download/v1.18.1/mihomo-linux-amd64-v1.18.1.gz | gzip -d > files/etc/openclash/core/clash_meta
+wget -qO- https://github.com/MetaCubeX/mihomo/releases/download/v1.18.1/mihomo-linux-amd64-v1.19.24.gz | gzip -d > files/etc/openclash/core/clash_meta
 chmod +x files/etc/openclash/core/clash_meta
 
 # 3. 关闭 HTTPS 重定向（防止首次开机证书生成死锁）
