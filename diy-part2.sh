@@ -52,15 +52,12 @@ config dhcp 'lan'
     option ndp 'disabled'
 EOF
 
-echo "✅ XGATE V2 固件定制脚本全量加载完成"
-
-# ----------------- 增量修复：网页校验与节点命名 -----------------
-
 # 5. 修复 LuCI 网页端对 # 号校验过严的 Bug
 # 逻辑：将 MosDNS 和 OpenClash 配置文件中对 IP 地址的强制校验从 ip4addr 改为 string
 # 这样网页端就不会因为输入 127.0.0.1#5335 而报错标红
 find feeds/luci/luci-app-mosdns -name "*.htm" | xargs sed -i 's/datatype="ip4addr"/datatype="string"/g' 2>/dev/null
 find feeds/luci/luci-app-openclash -name "*.js" | xargs sed -i 's/datatype="ip4addr"/datatype="string"/g' 2>/dev/null
 
+echo "✅ XGATE V2 固件定制脚本全量加载完成"
 
-# ----------------- 定制结束 -----------------
+# ----------------- 增量修复：网页校验与节点命名 -----------------
