@@ -53,3 +53,23 @@ config dhcp 'lan'
 EOF
 
 echo "✅ XGATE V2 固件定制脚本全量加载完成"
+
+# ----------------- 增量修复：网页校验与节点命名 -----------------
+
+# 5. 修复 LuCI 网页端对 # 号校验过严的 Bug
+# 逻辑：将 MosDNS 和 OpenClash 配置文件中对 IP 地址的强制校验从 ip4addr 改为 string
+# 这样网页端就不会因为输入 127.0.0.1#5335 而报错标红
+find feeds/luci/luci-app-mosdns -name "*.htm" | xargs sed -i 's/datatype="ip4addr"/datatype="string"/g' 2>/dev/null
+find feeds/luci/luci-app-openclash -name "*.js" | xargs sed -i 's/datatype="ip4addr"/datatype="string"/g' 2>/dev/null
+
+# 6. 强行统一 Dnsmasq 节点名称为 'setup'
+# 逻辑：将默认的匿名 config dnsmasq 节点命名为 "setup"，确保后期的 uci set dhcp.setup... 命令永远精准命中
+# 解决由于固件版本差异导致 @dnsmasq[0] 下标失效的问题
+sed -i '/config dnsmasq/c\config dnsmasq "setup"' package/network/services/dnsmasq/files/dnsmasq.conf 2>/dev/null
+
+# 7. 预设 Dnsmasq 的 DNS 转发规则（编译阶段闭环）
+# 即使网页端有 Bug，固件刷完后底层也会默认指向 127.0.0.1#5335
+echo "    list server '127.0.0.1#5335'" >> package/network/services/dnsmasq/files/dnsmasq.conf
+echo "    option noresolv '1'" >> package/network/services/dnsmasq/files/dnsmasq.conf
+
+# ----------------- 定制结束 -----------------
